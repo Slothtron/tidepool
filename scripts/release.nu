@@ -39,11 +39,10 @@ def main [
 
     # 更新版本号
     print "📝 更新版本号..."
-    if not $dry_run {
-        # 更新 Cargo.toml 中的版本号
+    if not $dry_run {        # 更新 Cargo.toml 中的版本号
         let cargo_toml = (open Cargo.toml)
         let updated_cargo = ($cargo_toml | upsert workspace.package.version $version)
-        $updated_cargo | save Cargo.toml
+        $updated_cargo | save --force Cargo.toml
 
         # 运行 cargo check 来更新 Cargo.lock
         cargo check --workspace
