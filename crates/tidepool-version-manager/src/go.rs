@@ -866,7 +866,10 @@ impl VersionManager for GoManager {
         environment_vars.insert("GOPATH".to_string(), gopath);
         let mut current_version = None;
         let mut install_path = None;
+        #[cfg(target_os = "windows")]
         let mut link_info = None;
+        #[cfg(not(target_os = "windows"))]
+        let link_info = None;
 
         if let Some(base_dir) = base_dir {
             current_version = self.get_current_version(base_dir);
