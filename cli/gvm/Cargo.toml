@@ -1,0 +1,27 @@
+[package]
+name = "gvm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Go Version Manager - Simple and fast Go version switching"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "gvm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gvm"
+path = "src/main.rs"
+
+[dependencies]
+tidepool-version-manager = { path = "../../crates/tidepool-version-manager" }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+dirs = { workspace = true }
+console = { workspace = true }
+indicatif = { workspace = true }
+env_logger = { workspace = true }

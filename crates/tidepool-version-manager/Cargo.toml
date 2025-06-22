@@ -1,0 +1,38 @@
+[package]
+name = "tidepool-version-manager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Version management for Tidepool toolkit"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+reqwest = { workspace = true }
+serde_json = { workspace = true }
+zip = { workspace = true }
+async-trait = { workspace = true }
+log = { workspace = true }
+# 添加从 tidepool-downloader 移过来的依赖
+tokio = { workspace = true }
+futures = { workspace = true }
+bytes = { workspace = true }
+indicatif = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+url = { workspace = true }
+# SHA256 哈希计算
+sha2 = "0.10"
+
+# Unix-specific dependencies
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+flate2 = "1.0"
+tar = "0.4"
+
+[dev-dependencies]
+tempfile = "3.5.0"
+tokio = { workspace = true, features = [
+    "macros",
+    "rt",
+] } # Keep specific features if needed, though workspace 'full' covers these

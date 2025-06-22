@@ -1,0 +1,14 @@
+# Cross.toml - 跨平台编译配置
+[build.env]
+passthrough = ["GITHUB_TOKEN", "CARGO_REGISTRY_TOKEN", "RUST_LOG"]
+
+# Linux ARM64 配置
+[target.aarch64-unknown-linux-gnu]
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge"
+
+# 其他架构的镜像配置可以在需要时添加
+[target.armv7-unknown-linux-gnueabihf]
+image = "ghcr.io/cross-rs/armv7-unknown-linux-gnueabihf:edge"
+
+[target.x86_64-unknown-linux-musl]
+image = "ghcr.io/cross-rs/x86_64-unknown-linux-musl:edge"
