@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
     use std::fs;
     use tidepool_version_manager::go::GoManager;
 

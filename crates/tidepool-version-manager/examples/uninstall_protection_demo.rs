@@ -2,7 +2,7 @@
 ///
 /// 此示例展示了 gvm uninstall 命令在尝试卸载当前活跃版本时的保护机制
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use tempfile::TempDir;
 use tidepool_version_manager::{go::GoManager, UninstallRequest, VersionManager};
 
@@ -105,7 +105,7 @@ fn demonstrate_uninstall_protection() {
     println!("  ✓ 保护数据完整性");
 }
 
-fn create_mock_go_installation(base_dir: &PathBuf, version: &str) {
+fn create_mock_go_installation(base_dir: &Path, version: &str) {
     let version_dir = base_dir.join(version);
     let bin_dir = version_dir.join("bin");
 
@@ -120,7 +120,7 @@ fn create_mock_go_installation(base_dir: &PathBuf, version: &str) {
         .expect("无法创建 go 二进制文件");
 }
 
-fn create_current_symlink(base_dir: &PathBuf, target_version: &str) {
+fn create_current_symlink(base_dir: &Path, target_version: &str) {
     let current_link = base_dir.join("current");
     let target_dir = base_dir.join(target_version);
 
