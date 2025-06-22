@@ -1,24 +1,39 @@
 [package]
 name = "tidepool"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
 
-[dependencies]
-tidepool-version-manager = { path = "crates/tidepool-version-manager" }
+[package.version]
+workspace = true
+
+[package.edition]
+workspace = true
+
+[package.rust-version]
+workspace = true
+
+[package.authors]
+workspace = true
+
+[package.license]
+workspace = true
+
+[package.repository]
+workspace = true
+
+[dependencies.tidepool-version-manager]
+path = "crates/tidepool-version-manager"
 
 [dev-dependencies]
 tempfile = "3.5.0"
 
 [workspace]
 resolver = "2"
-members = ["crates/tidepool-version-manager", "cli/gvm"]
+members = [
+    "crates/tidepool-version-manager",
+    "cli/gvm",
+]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.70.0"
 authors = ["Slothtron"]
@@ -27,16 +42,9 @@ repository = "https://github.com/Slothtron/tidepool"
 
 [workspace.dependencies]
 anyhow = "1.0"
-tokio = { version = "1.0", features = ["full"] } # "full" implies "macros", "rt"
 indicatif = "0.17"
-dirs = "5.0" # Still needed for CLI
-serde = { version = "1.0", features = ["derive"] }
+dirs = "5.0"
 serde_json = "1.0"
-reqwest = { version = "0.11", features = [
-    "stream",
-    "blocking",
-    "json",
-] } # Merged features
 console = "0.15"
 futures = "0.3"
 bytes = "1.0"
@@ -44,40 +52,41 @@ thiserror = "1.0"
 url = "2.4"
 zip = "0.6"
 async-trait = "0.1"
-clap = { version = "4.0", features = ["derive"] }
 log = "0.4"
 env_logger = "0.10"
+tempfile = "3.5.0"
 
-# Removed dependencies that are now handled by standard library:
-# uuid = { version = "1.0", features = ["v4"] } - replaced with timestamp + pid
+[workspace.dependencies.tokio]
+version = "1.0"
+features = ["full"]
 
-# Dev dependencies that might be common, can be added if needed
-tempfile = "3.5.0" # 测试中使用的临时文件
-# tokio-test = "0.4"
+[workspace.dependencies.serde]
+version = "1.0"
+features = ["derive"]
 
-# 发布版本优化配置
+[workspace.dependencies.reqwest]
+version = "0.11"
+features = [
+    "stream",
+    "blocking",
+    "json",
+]
+
+[workspace.dependencies.clap]
+version = "4.0"
+features = ["derive"]
+
 [profile.release]
-# 启用链接时优化以减少二进制文件大小
 lto = true
-# 使用单个代码生成单元以获得更好的优化
 codegen-units = 1
-# 启用恐慌时展开以减少二进制文件大小
 panic = "abort"
-# 优化二进制文件大小
 opt-level = "z"
-# 去除调试符号
 debug = false
-# 去除符号表
 strip = true
 
-# 分发专用配置 - 更激进的优化
 [profile.dist]
 inherits = "release"
-# 最高级别的大小优化
 opt-level = "z"
-# 启用所有链接时优化
 lto = "fat"
-# 单个代码生成单元
 codegen-units = 1
-# 禁用溢出检查以进一步减少大小
 overflow-checks = false
