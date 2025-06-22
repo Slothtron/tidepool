@@ -7,13 +7,13 @@ use std::path::PathBuf;
 fn test_environment_variable_generation() {
     // 测试环境变量路径生成逻辑
     let install_path = PathBuf::from("/test/go/1.21.0");
-    let bin_path = install_path.join("bin");
+    let bin_path = install_path.join("bin"); // 验证 GOROOT 路径（使用平台无关的方式）
+    let expected_goroot = PathBuf::from("/test/go/1.21.0");
+    assert_eq!(install_path, expected_goroot);
 
-    // 验证 GOROOT 路径
-    assert_eq!(install_path.to_string_lossy(), "/test/go/1.21.0");
-
-    // 验证 PATH 路径
-    assert_eq!(bin_path.to_string_lossy(), "/test/go/1.21.0/bin");
+    // 验证 PATH 路径（使用平台无关的方式）
+    let expected_bin = expected_goroot.join("bin");
+    assert_eq!(bin_path, expected_bin);
 }
 
 #[test]

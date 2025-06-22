@@ -38,18 +38,21 @@ mod environment_display_tests {
             assert!(shell_path.contains(expected_shell));
         }
     }
-
     #[test]
     fn test_cross_platform_paths() {
         // 测试跨平台路径处理
-        let unix_path = PathBuf::from("/home/user/.gvm/versions/1.21.0");
 
-        // 验证 Unix 路径格式
-        assert!(unix_path.is_absolute());
+        // Unix 路径测试仅在 Unix 系统上运行
+        #[cfg(unix)]
+        {
+            let unix_path = PathBuf::from("/home/user/.gvm/versions/1.21.0");
+            // 验证 Unix 路径格式
+            assert!(unix_path.is_absolute());
 
-        // 验证 bin 子目录
-        let unix_bin = unix_path.join("bin");
-        assert!(unix_bin.to_string_lossy().ends_with("bin"));
+            // 验证 bin 子目录
+            let unix_bin = unix_path.join("bin");
+            assert!(unix_bin.to_string_lossy().ends_with("bin"));
+        }
 
         // Windows 路径测试仅在 Windows 上运行
         #[cfg(windows)]

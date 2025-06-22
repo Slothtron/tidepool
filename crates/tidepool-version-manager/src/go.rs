@@ -864,10 +864,9 @@ impl VersionManager for GoManager {
 
         environment_vars.insert("GOROOT".to_string(), goroot.clone());
         environment_vars.insert("GOPATH".to_string(), gopath);
-
         let mut current_version = None;
         let mut install_path = None;
-        let link_info = None;
+        let mut link_info = None;
 
         if let Some(base_dir) = base_dir {
             current_version = self.get_current_version(base_dir);
