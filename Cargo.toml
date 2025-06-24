@@ -29,6 +29,7 @@ tempfile = "3.5.0"
 resolver = "2"
 members = [
     "crates/tidepool-version-manager",
+    "crates/tidepool-hosts-manager",
     "cli/gvm",
 ]
 

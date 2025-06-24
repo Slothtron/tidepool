@@ -1,0 +1,41 @@
+[package]
+name = "tidepool-hosts-manager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Hosts 文件管理工具库，支持 hosts 映射解析、多文件分组管理和网络代理服务"
+keywords = ["hosts", "network", "proxy", "dns", "manager"]
+categories = ["network-programming", "command-line-utilities"]
+
+[dependencies]
+# 核心依赖
+anyhow = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { version = "1.0", features = ["full"], optional = true }
+reqwest = { version = "0.11", features = ["json"], optional = true }
+toml = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+
+# 网络相关
+trust-dns-resolver = { version = "0.23", optional = true }
+
+# 文件操作
+tempfile = "3.8"
+dirs = { workspace = true }
+
+# 日志系统
+log = "0.4"
+
+[dev-dependencies]
+tempfile = "3.8"
+tokio-test = "0.4"
+env_logger = "0.10"
+tokio = { version = "1.0", features = ["full"] }
+
+[features]
+default = ["proxy"]
+proxy = ["tokio", "reqwest", "trust-dns-resolver"]
