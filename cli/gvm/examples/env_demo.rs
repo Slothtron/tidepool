@@ -9,33 +9,31 @@ struct DemoUI;
 impl DemoUI {
     fn new() -> Self {
         Self
-    }
-
-    fn header(&self, text: &str) {
+    }    fn header(text: &str) {
         println!("\n{text}");
         println!("{}", "=".repeat(text.len()));
     }
 
-    fn info(&self, message: &str) {
+    fn info(message: &str) {
         println!("ℹ️  {message}");
     }
 
-    fn list_item(&self, icon: &str, text: &str) {
+    fn list_item(icon: &str, text: &str) {
         println!("{icon} {text}");
     }
 
-    fn hint(&self, message: &str) {
+    fn hint(message: &str) {
         println!("💡 {message}");
     }
 
-    fn newline(&self) {
+    fn newline() {
         println!();
     }
 
     // 从主项目复制的方法
     fn show_environment_setup(&self, install_path: &Path, version: &str) {
-        self.newline();
-        self.header("📋 环境变量配置说明");
+        DemoUI::newline();
+        DemoUI::header("📋 环境变量配置说明");
 
         let bin_path = install_path.join("bin");
         let go_root = install_path;
@@ -46,46 +44,48 @@ impl DemoUI {
             self.show_unix_env_setup(&bin_path, go_root, version);
         }
 
-        self.newline();
-        self.hint(&format!("💡 切换完成！现在可以使用 Go {version} 了"));
-        self.hint("   运行 'go version' 验证当前版本");
+        DemoUI::newline();
+        DemoUI::hint(&format!("💡 切换完成！现在可以使用 Go {version} 了"));
+        DemoUI::hint("   运行 'go version' 验证当前版本");
     }
 
+    #[allow(clippy::unused_self)]
     fn show_windows_env_setup(&self, bin_path: &Path, go_root: &Path, version: &str) {
-        self.info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
-        self.newline();
+        DemoUI::info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
+        DemoUI::newline();
 
-        self.list_item("🔷", "PowerShell 临时配置（当前会话）:");
+        DemoUI::list_item("🔷", "PowerShell 临时配置（当前会话）:");
         println!("    $env:GOROOT = \"{}\"", go_root.display());
         println!("    $env:PATH = \"{};$env:PATH\"", bin_path.display());
-        self.newline();
+        DemoUI::newline();
 
-        self.list_item("🔷", "PowerShell 永久配置（添加到 $PROFILE）:");
+        DemoUI::list_item("🔷", "PowerShell 永久配置（添加到 $PROFILE）:");
         println!("    $env:GOROOT = \"{}\"", go_root.display());
         println!("    $env:PATH = \"{};$env:PATH\"", bin_path.display());
-        self.newline();
+        DemoUI::newline();
 
-        self.list_item("🔶", "命令提示符(CMD) 临时配置:");
+        DemoUI::list_item("🔶", "命令提示符(CMD) 临时配置:");
         println!("    set GOROOT={}", go_root.display());
         println!("    set PATH={};%PATH%", bin_path.display());
-        self.newline();
+        DemoUI::newline();
 
-        self.list_item("⚙️", "系统环境变量配置（推荐）:");
-        self.hint("   1. 右键'此电脑' → 属性 → 高级系统设置");
-        self.hint("   2. 点击'环境变量'按钮");
-        self.hint(&format!("   3. 新建 GOROOT = {}", go_root.display()));
-        self.hint(&format!("   4. 编辑 PATH，添加 {}", bin_path.display()));
-        self.hint("   5. 重启终端生效");
+        DemoUI::list_item("⚙️", "系统环境变量配置（推荐）:");
+        DemoUI::hint("   1. 右键'此电脑' → 属性 → 高级系统设置");
+        DemoUI::hint("   2. 点击'环境变量'按钮");
+        DemoUI::hint(&format!("   3. 新建 GOROOT = {}", go_root.display()));
+        DemoUI::hint(&format!("   4. 编辑 PATH，添加 {}", bin_path.display()));
+        DemoUI::hint("   5. 重启终端生效");
     }
 
+    #[allow(clippy::unused_self)]
     fn show_unix_env_setup(&self, bin_path: &Path, go_root: &Path, version: &str) {
-        self.info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
-        self.newline();
+        DemoUI::info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
+        DemoUI::newline();
 
-        self.list_item("🟢", "当前会话临时配置:");
+        DemoUI::list_item("🟢", "当前会话临时配置:");
         println!("    export GOROOT=\"{}\"", go_root.display());
         println!("    export PATH=\"{}:$PATH\"", bin_path.display());
-        self.newline();
+        DemoUI::newline();
 
         let shell = std::env::var("SHELL").unwrap_or_default();
         let (shell_name, config_file) = if shell.contains("zsh") {
@@ -98,7 +98,7 @@ impl DemoUI {
             ("Bash", "~/.bashrc 或 ~/.bash_profile")
         };
 
-        self.list_item("🟢", &format!("{shell_name} 永久配置（添加到 {config_file}）:"));
+        DemoUI::list_item("🟢", &format!("{shell_name} 永久配置（添加到 {config_file}）:"));
 
         if shell.contains("fish") {
             println!("    set -gx GOROOT \"{}\"", go_root.display());
@@ -110,22 +110,22 @@ impl DemoUI {
             println!("    export GOROOT=\"{}\"", go_root.display());
             println!("    export PATH=\"{}:$PATH\"", bin_path.display());
         }
-        self.newline();
+        DemoUI::newline();
 
-        self.list_item("⚡", "立即应用配置:");
+        DemoUI::list_item("⚡", "立即应用配置:");
         if shell.contains("fish") {
-            self.hint(&format!("   source {config_file}"));
+            DemoUI::hint(&format!("   source {config_file}"));
         } else if shell.contains("nu") {
-            self.hint("   重启 NuShell 或重新加载配置");
+            DemoUI::hint("   重启 NuShell 或重新加载配置");
         } else {
-            self.hint(&format!("   source {config_file}"));
+            DemoUI::hint(&format!("   source {config_file}"));
         }
 
         if cfg!(target_os = "macos") {
-            self.newline();
-            self.list_item("🍎", "macOS 用户注意:");
-            self.hint("   如果使用 Terminal.app，配置文件可能是 ~/.bash_profile");
-            self.hint("   如果使用 iTerm2 + Zsh，配置文件是 ~/.zshrc");
+            DemoUI::newline();
+            DemoUI::list_item("🍎", "macOS 用户注意:");
+            DemoUI::hint("   如果使用 Terminal.app，配置文件可能是 ~/.bash_profile");
+            DemoUI::hint("   如果使用 iTerm2 + Zsh，配置文件是 ~/.zshrc");
         }
     }
 }

@@ -1,6 +1,6 @@
-//! 演示Go版本管理器的Junction Point功能
+//! 演示Go版本管理器的 `Junction` Point功能
 //!
-//! 使用方法: cargo run --example junction_demo
+//! 使用方法: cargo run --example `junction_demo`
 
 use std::env;
 use std::path::PathBuf;

@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 /// 1. Environment variables  
 /// 2. Default configuration
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_field_names)]
 pub struct Config {
     /// Root directory for GVM installation
     pub root_path: PathBuf,
@@ -19,16 +20,20 @@ pub struct Config {
 
 impl Config {
     /// Initialize configuration from environment variables and defaults
+    /// Creates a new configuration.
+    ///
+    /// # Errors
+    /// Returns an error if the configuration directories cannot be created.
     pub fn new() -> Result<Self> {
         let root_path = Self::resolve_root_path()?;
-        let versions_path = Self::resolve_versions_path(&root_path)?;
-        let cache_path = Self::resolve_cache_path(&root_path)?;
+        let versions_path = Self::resolve_versions_path(&root_path);
+        let cache_path = Self::resolve_cache_path(&root_path);
         Ok(Config { root_path, versions_path, cache_path })
     }
 
     /// Get the GVM root path
     ///
-    /// Priority: Environment variable GVM_ROOT_PATH -> Default (~/.gvm)
+    /// Priority: Environment variable `GVM_ROOT_PATH` -> Default (~/.gvm)
     fn resolve_root_path() -> Result<PathBuf> {
         if let Ok(env_path) = env::var("GVM_ROOT_PATH") {
             return Ok(PathBuf::from(env_path));
@@ -43,35 +48,41 @@ impl Config {
 
     /// Get the versions directory path
     ///
-    /// Priority: Environment variable GVM_VERSIONS_PATH -> Default ($GVM_ROOT_PATH/versions)
-    fn resolve_versions_path(root_path: &Path) -> Result<PathBuf> {
+    /// Priority: Environment variable `GVM_VERSIONS_PATH` -> Default (`$GVM_ROOT_PATH/versions`)
+    fn resolve_versions_path(root_path: &Path) -> PathBuf {
         if let Ok(env_path) = env::var("GVM_VERSIONS_PATH") {
-            return Ok(PathBuf::from(env_path));
+            return PathBuf::from(env_path);
         }
-        Ok(root_path.join("versions"))
+        root_path.join("versions")
     }
 
     /// Get the cache directory path
     ///
-    /// Priority: Environment variable GVM_CACHE_PATH -> Default ($GVM_ROOT_PATH/cache)
-    fn resolve_cache_path(root_path: &Path) -> Result<PathBuf> {
+    /// Priority: Environment variable `GVM_CACHE_PATH` -> Default (`$GVM_ROOT_PATH/cache`)
+    fn resolve_cache_path(root_path: &Path) -> PathBuf {
         if let Ok(env_path) = env::var("GVM_CACHE_PATH") {
-            return Ok(PathBuf::from(env_path));
+            return PathBuf::from(env_path);
         }
-        Ok(root_path.join("cache"))
+        root_path.join("cache")
     }
 
     /// Get the versions path
+    #[must_use]
     pub fn versions(&self) -> &PathBuf {
         &self.versions_path
     }
 
     /// Get the cache path
+    #[must_use]
     pub fn cache(&self) -> &PathBuf {
         &self.cache_path
     }
 
     /// Ensure all configuration directories exist
+    /// Ensure that required directories exist.
+    ///
+    /// # Errors
+    /// Returns an error if the directories cannot be created.
     pub fn ensure_directories(&self) -> Result<()> {
         use std::fs;
 

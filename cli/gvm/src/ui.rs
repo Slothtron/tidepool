@@ -21,6 +21,7 @@ impl Icons {
     }
 
     /// Get success icon with fallback for unsupported terminals
+    #[must_use]
     pub fn success() -> &'static str {
         if Self::should_use_ascii() {
             "√"
@@ -30,6 +31,7 @@ impl Icons {
     }
 
     /// Get error icon with fallback
+    #[must_use]
     pub fn error() -> &'static str {
         if Self::should_use_ascii() {
             "×"
@@ -39,6 +41,7 @@ impl Icons {
     }
 
     /// Get warning icon with fallback
+    #[must_use]
     pub fn warning() -> &'static str {
         if Self::should_use_ascii() {
             "!"
@@ -48,6 +51,7 @@ impl Icons {
     }
 
     /// Get info icon with fallback
+    #[must_use]
     pub fn info() -> &'static str {
         if Self::should_use_ascii() {
             "i"
@@ -57,6 +61,7 @@ impl Icons {
     }
 
     /// Get hint icon with fallback
+    #[must_use]
     pub fn hint() -> &'static str {
         if Self::should_use_ascii() {
             "*"
@@ -66,6 +71,7 @@ impl Icons {
     }
 
     /// Get package icon with fallback
+    #[must_use]
     pub fn package() -> &'static str {
         if Self::should_use_ascii() {
             ">"
@@ -75,6 +81,7 @@ impl Icons {
     }
 
     /// Get arrow right icon with fallback
+    #[must_use]
     pub fn arrow_right() -> &'static str {
         if Self::should_use_ascii() {
             "->"
@@ -94,45 +101,56 @@ impl Default for UI {
 }
 
 impl UI {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
 
     /// Print a success message
+    /// Print a success message
+    #[allow(clippy::unused_self)]
     pub fn success(&self, message: &str) {
         println!("{} {}", style(Icons::success()).green().bold(), message);
-    }
-
-    /// Print an error message
+    }    /// Print an error message
+    #[allow(clippy::unused_self)]
     pub fn error(&self, message: &str) {
         println!("{} {}", style(Icons::error()).red().bold(), message);
-    }
-
-    /// Print a warning message
+    }    /// Print a warning message
+    #[allow(clippy::unused_self)]
     pub fn warning(&self, message: &str) {
         println!("{} {}", style(Icons::warning()).yellow(), message);
     }
 
     /// Print an info message
+    /// Print an info message
+    #[allow(clippy::unused_self)]
     pub fn info(&self, message: &str) {
         println!("{} {}", style(Icons::info()).blue(), message);
     }
 
     /// Print a hint/tip message
+    /// Print a hint message
+    #[allow(clippy::unused_self)]
     pub fn hint(&self, message: &str) {
         println!("{} {}", style(Icons::hint()).blue(), message);
     }
     /// Print a section header
+    /// Print a header message
+    #[allow(clippy::unused_self)]
     pub fn header(&self, text: &str) {
         println!("{}", style(text).cyan().bold());
     }
 
     /// Print key-value pair
+    /// Print a key-value pair
+    #[allow(clippy::unused_self)]
     pub fn kv_pair(&self, key: &str, value: &str) {
         println!("  {} {}", style(format!("{key}:")).dim(), value);
     }
 
     /// Print key-value pair with colored value
+    /// Print a colored key-value pair
+    #[allow(clippy::unused_self)]
     pub fn kv_pair_colored(&self, key: &str, value: &str, color: &str) {
         let styled_value = match color {
             "green" => style(value).green(),
@@ -147,10 +165,14 @@ impl UI {
     }
 
     /// Print a list item
+    /// Print a list item
+    #[allow(clippy::unused_self)]
     pub fn list_item(&self, icon: &str, text: &str) {
         println!("  {icon} {text}");
     }
     /// Print an empty line
+    /// Print a newline
+    #[allow(clippy::unused_self)]
     pub fn newline(&self) {
         println!();
     }
@@ -241,6 +263,7 @@ impl UI {
 
         // File size
         if let Some(size) = info.size {
+            #[allow(clippy::cast_precision_loss)]
             let size_mb = size as f64 / 1024.0 / 1024.0;
             self.kv_pair("Size", &format!("{size_mb:.1} MB ({size} bytes)"));
         } else {
@@ -271,10 +294,10 @@ impl UI {
         self.newline();
 
         // Hint information
-        if !info.is_installed {
-            self.hint(&format!("Install this version: gvm install {}", info.version));
-        } else {
+        if info.is_installed {
             self.hint(&format!("Switch to this version: gvm use {}", info.version));
+        } else {
+            self.hint(&format!("Install this version: gvm install {}", info.version));
         }
     }
 
@@ -407,27 +430,32 @@ pub struct Messages;
 
 impl Messages {
     // Installation messages
+    #[must_use]
     pub fn installing_go(version: &str) -> String {
         format!("{} {}", style("Installing Go").cyan().bold(), style(version).green().bold())
     }
 
-    // Uninstall messages
+    #[must_use]
     pub fn uninstalling_go(version: &str) -> String {
         format!("{} {}", style("Uninstalling Go").cyan().bold(), style(version).red().bold())
     }
 
+    #[must_use]
     pub fn go_uninstalled_successfully(version: &str) -> String {
         format!("Go {} uninstalled successfully!", style(version).green())
     }
 
+    #[must_use]
     pub fn go_not_installed(version: &str) -> String {
         format!("Go {} is not installed", style(version).red())
     }
 
+    #[must_use]
     pub fn uninstall_failed(version: &str, error: &str) -> String {
         format!("Failed to uninstall Go {}: {}", style(version).red(), style(error).red())
     }
 
+    #[must_use]
     pub fn cannot_uninstall_current_version(version: &str) -> String {
         format!(
             "{} Cannot uninstall Go {} as it is currently active.\n{}",
@@ -437,6 +465,7 @@ impl Messages {
         )
     }
 
+    #[must_use]
     pub fn clear_current_symlink_hint() -> String {
         format!(
             "Solutions: {} or {}",
@@ -447,16 +476,19 @@ impl Messages {
 
     // Hash verification messages
     #[allow(dead_code)]
+    #[must_use]
     pub fn verifying_checksum() -> String {
         format!("{} Verifying file integrity...", style("🔍").cyan())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn checksum_verification_passed() -> String {
         format!("{} File integrity verification passed", style("✓").green())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn checksum_verification_failed(expected: &str, actual: &str) -> String {
         format!(
             "{} File integrity verification failed!\n{}: {}\n{}: {}",
@@ -469,69 +501,86 @@ impl Messages {
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn corrupted_file_removed(path: &str) -> String {
         format!("{} Removed corrupted file: {}", style("🗑️").yellow(), style(path).dim())
     }
 
     // List messages
+    #[must_use]
     pub fn installed_go_versions() -> String {
         style("Installed Go versions:").cyan().bold().to_string()
     }
 
+    #[must_use]
     pub fn available_go_versions() -> String {
         style("Available Go versions (latest releases):").cyan().bold().to_string()
     }
 
+    #[must_use]
     pub fn no_go_versions_found() -> String {
         "No Go versions found".to_string()
     }
 
+    #[must_use]
     pub fn installation_directory_not_found(path: &str) -> String {
         format!("Installation directory not found: {}", style(path).dim())
     }
 
+    #[must_use]
     pub fn install_version_hint() -> String {
         format!("Install a version: {}", style("gvm install <version>").cyan())
     }
 
+    #[must_use]
     pub fn use_version_hint() -> String {
         format!("Install version: {}", style("gvm install <version>").cyan())
     }
 
+    #[must_use]
     pub fn error_listing_versions(error: &str) -> String {
         format!("Error listing versions: {}", style(error).red())
     }
 
+    #[must_use]
     pub fn error_getting_available_versions(error: &str) -> String {
         format!("Error getting available versions: {error}")
     }
 
+    #[must_use]
     pub fn visit_go_website() -> String {
         format!("For complete list visit: {}", style("https://go.dev/dl/").blue())
     }
+    #[must_use]
     pub fn install_with_hint() -> String {
         format!("Install with: {}", style("gvm install <version>").cyan())
     }
 
+    #[must_use]
     pub fn switched_to_go_successfully(version: &str) -> String {
         format!("Successfully switched to Go {}!", style(version).green())
     }
 
+    #[must_use]
     pub fn switch_failed(error: &str) -> String {
         format!("Switch failed: {}", style(error).red())
     }
+    #[must_use]
     pub fn error_getting_status(error: &str) -> String {
         format!("Error getting status: {error}")
     }
 
+    #[must_use]
     pub fn removing_existing_installation(version: &str) -> String {
         format!("{} {}", style("Removing existing installation...").yellow(), version)
     }
 
+    #[must_use]
     pub fn found_cached_download(version: &str) -> String {
         format!("Found cached download for Go {}", style(version).green())
     }
 
+    #[must_use]
     pub fn installation_failed(error: &str) -> String {
         format!("Installation failed: {}", style(error).red())
     }

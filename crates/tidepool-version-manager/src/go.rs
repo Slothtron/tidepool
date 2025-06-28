@@ -48,39 +48,48 @@ impl Default for GoManager {
 }
 
 impl GoManager {
+    #[must_use]
     pub fn new() -> Self {
         Self {}
-    }
-
-    /// Extract archive to specified directory (public method)
-    pub fn extract_archive(&self, archive_path: &Path, extract_to: &Path) -> Result<(), String> {
-        #[cfg(target_os = "windows")]
+    }    /// Extract archive to specified directory (public method)
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if:
+    /// - The archive file cannot be opened
+    /// - The archive format is invalid
+    /// - Files cannot be extracted to the target directory
+    /// - File I/O operations fail
+    pub fn extract_archive(&self, archive_path: &Path, extract_to: &Path) -> Result<(), String> {#[cfg(target_os = "windows")]
         {
-            self.extract_zip(archive_path, extract_to)
+            Self::extract_zip(archive_path, extract_to)
         }
 
         #[cfg(not(target_os = "windows"))]
         {
             self.extract_tar_gz(archive_path, extract_to)
         }
-    }
-
-    /// 跨平台版本切换实现（Windows 使用 Junction，Unix 使用符号链接）
-    pub fn switch_version(&self, version: &str, base_dir: &Path) -> Result<(), String> {
-        #[cfg(target_os = "windows")]
+    }    /// 跨平台版本切换实现（Windows 使用 Junction，Unix 使用符号链接）
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The requested version directory does not exist
+    /// - Unable to remove existing current version link
+    /// - Unable to create new version link
+    /// - System file operations fail
+    pub fn switch_version(&self, version: &str, base_dir: &Path) -> Result<(), String> {#[cfg(target_os = "windows")]
         {
-            self.switch_version_windows(version, base_dir)
+            Self::switch_version_windows(version, base_dir)
         }
 
         #[cfg(not(target_os = "windows"))]
         {
             self.switch_version_unix(version, base_dir)
         }
-    }
-
-    /// Windows Junction Point 版本切换实现（不需要管理员权限）
+    }    /// Windows Junction Point 版本切换实现（不需要管理员权限）
     #[cfg(target_os = "windows")]
-    fn switch_version_windows(&self, version: &str, base_dir: &Path) -> Result<(), String> {
+    fn switch_version_windows(version: &str, base_dir: &Path) -> Result<(), String> {
         let version_path = base_dir.join(version);
         let junction_path = base_dir.join("current");
 
@@ -191,30 +200,27 @@ impl GoManager {
 
         debug!("Successfully created symlink for Go version {}", version);
         Ok(())
-    }
-
-    /// 获取当前活跃的Go版本
+    }    /// 获取当前活跃的Go版本
+    #[must_use]
     pub fn get_current_version(&self, base_dir: &Path) -> Option<String> {
         // 首先尝试从链接获取（跨平台支持junction和symlink）
         if let Some(target) = self.get_link_target(base_dir) {
-            return target.file_name().and_then(|name| name.to_str()).map(|s| s.to_string());
+            return target.file_name().and_then(|name| name.to_str()).map(std::string::ToString::to_string);
         }
 
         // 最后尝试从环境变量推断
         if let Ok(goroot) = std::env::var("GOROOT") {
             let goroot_path = PathBuf::from(goroot);
-            if goroot_path.starts_with(base_dir) {
-                return goroot_path
+            if goroot_path.starts_with(base_dir) {                return goroot_path
                     .file_name()
                     .and_then(|name| name.to_str())
-                    .map(|s| s.to_string());
+                    .map(std::string::ToString::to_string);
             }
         }
 
         None
-    }
-
-    /// 获取链接指向的目标路径（跨平台）
+    }    /// 获取链接指向的目标路径（跨平台）
+    #[must_use]
     pub fn get_link_target(&self, base_dir: &Path) -> Option<PathBuf> {
         let link_path = base_dir.join("current");
 
@@ -231,20 +237,17 @@ impl GoManager {
         }
 
         None
-    }
-
-    /// 获取junction指向的目标路径（Windows特定，向后兼容）
+    }    /// 获取junction指向的目标路径（Windows特定，向后兼容）
     #[cfg(target_os = "windows")]
+    #[must_use]
     pub fn get_junction_target(&self, base_dir: &Path) -> Option<PathBuf> {
         self.get_link_target(base_dir)
-    }
-
-    /// 获取符号链接指向的目标路径（跨平台）
+    }    /// 获取符号链接指向的目标路径（跨平台）
+    #[must_use]
     pub fn get_symlink_target(&self, base_dir: &Path) -> Option<PathBuf> {
         self.get_link_target(base_dir)
-    }
-
-    /// 获取链接状态信息（跨平台）
+    }    /// 获取链接状态信息（跨平台）
+    #[must_use]
     pub fn get_symlink_info(&self, base_dir: &Path) -> String {
         let link_path = base_dir.join("current");
 
@@ -256,21 +259,20 @@ impl GoManager {
         }
 
         if let Some(target) = self.get_link_target(base_dir) {
-            #[cfg(target_os = "windows")]
-            return format!("Junction: {} -> {}", link_path.display(), target.display());
+            #[cfg(target_os = "windows")]            return format!("Junction: {} -> {}", link_path.display(), target.display());
             #[cfg(not(target_os = "windows"))]
             return format!("Symlink: {} -> {}", link_path.display(), target.display());
-        } else {
-            #[cfg(target_os = "windows")]
-            return "Junction exists but target unknown".to_string();
-            #[cfg(not(target_os = "windows"))]
-            return "Symlink exists but target unknown".to_string();
         }
+        
+        #[cfg(target_os = "windows")]
+        return "Junction exists but target unknown".to_string();
+        #[cfg(not(target_os = "windows"))]
+        return "Symlink exists but target unknown".to_string();
     }
 
     /// 解压 ZIP 文件 (Windows)
     #[cfg(target_os = "windows")]
-    fn extract_zip(&self, zip_path: &Path, extract_to: &Path) -> Result<(), String> {
+    fn extract_zip(zip_path: &Path, extract_to: &Path) -> Result<(), String> {
         use std::fs::File;
         use std::io::BufReader;
 
@@ -283,17 +285,8 @@ impl GoManager {
         for i in 0..archive.len() {
             let mut file = archive
                 .by_index(i)
-                .map_err(|e| format!("Failed to access file in archive: {e}"))?;
-
-            let file_path = match file.enclosed_name() {
-                Some(path) => path,
-                None => continue,
-            };
-
-            // Skip the top-level "go" directory and extract its contents directly
-            let relative_path = if let Ok(stripped) = file_path.strip_prefix("go") {
-                stripped
-            } else {
+                .map_err(|e| format!("Failed to access file in archive: {e}"))?;            let Some(file_path) = file.enclosed_name() else { continue };            // Skip the top-level "go" directory and extract its contents directly
+            let Ok(relative_path) = file_path.strip_prefix("go") else {
                 continue; // Skip files not in the "go" directory
             };
 
@@ -375,9 +368,14 @@ impl GoManager {
         }
 
         Ok(())
-    }
-
-    /// 计算文件的 SHA256 哈希值
+    }    /// 计算文件的 SHA256 哈希值
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The file cannot be opened
+    /// - File I/O operations fail during reading
+    /// - The hash calculation process fails
     pub async fn calculate_file_hash(&self, file_path: &Path) -> Result<String, String> {
         let mut file = tokio::fs::File::open(file_path)
             .await
@@ -483,10 +481,9 @@ impl GoManager {
                 "File integrity verification failed!\nExpected: {official_hash}\nActual: {file_hash}"
             ))
         }
-    }
-
-    /// 验证缓存文件的完整性
+    }    /// 验证缓存文件的完整性
     /// 检查文件是否存在、非空，并且可以被读取
+    #[must_use]
     pub fn validate_cache_file(&self, file_path: &Path) -> bool {
         if !file_path.exists() {
             return false;
@@ -504,15 +501,22 @@ impl GoManager {
             }
             Err(_) => false,
         }
-    }
-
-    /// 获取 Go 版本的详细信息
+    }    /// 获取 Go 版本的详细信息
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Invalid version format
+    /// - Network request fails
+    /// - Version not available for the current platform
+    /// - File size cannot be determined
     pub async fn get_version_info(
         &self,
         version: &str,
-        install_dir: &Path,
-        cache_dir: &Path,
+        install_dir: &Path,        cache_dir: &Path,
     ) -> Result<GoVersionInfo, String> {
+        use crate::downloader::Downloader;
+        
         // 确定当前平台信息
         let (os, arch) = if cfg!(target_os = "windows") {
             ("windows", if cfg!(target_arch = "x86_64") { "amd64" } else { "386" })
@@ -549,10 +553,8 @@ impl GoManager {
             // 如果已缓存，从本地文件获取大小
             debug!("Getting size from cached file: {}", cache_path.display());
             std::fs::metadata(&cache_path).ok().map(|m| m.len())
-        } else {
-            // 如果未缓存，尝试通过网络获取文件大小
+        } else {            // 如果未缓存，尝试通过网络获取文件大小
             debug!("Getting size from network for: {download_url}");
-            use crate::downloader::Downloader;
             let downloader = Downloader::new();
             match downloader.get_file_size(&download_url).await {
                 Ok(size) => {
@@ -584,8 +586,8 @@ impl GoManager {
 }
 
 #[async_trait::async_trait]
-impl VersionManager for GoManager {
-    /// 安装指定版本的Go
+impl VersionManager for GoManager {    /// 安装指定版本的Go
+    #[allow(clippy::too_many_lines)]
     async fn install(&self, request: InstallRequest) -> Result<VersionInfo, String> {
         let version = &request.version;
         let install_dir = &request.install_dir;

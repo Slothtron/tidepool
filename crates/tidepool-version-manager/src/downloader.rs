@@ -46,8 +46,12 @@ pub struct ProgressReporter {
     progress_bar: ProgressBar,
 }
 
-impl ProgressReporter {
-    /// 创建新的进度报告器
+impl ProgressReporter {    /// 创建新的进度报告器
+    ///
+    /// # Panics
+    ///
+    /// Panics if the progress bar template is invalid (which should not happen with the predefined template)
+    #[must_use]
     pub fn new(total_size: u64) -> Self {
         let progress_bar = ProgressBar::new(total_size);
         progress_bar.set_style(
@@ -83,9 +87,8 @@ impl ProgressReporter {
     /// 设置长度
     pub fn set_length(&self, length: u64) {
         self.progress_bar.set_length(length);
-    }
-
-    /// 获取长度
+    }    /// 获取长度
+    #[must_use]
     pub fn length(&self) -> Option<u64> {
         Some(self.progress_bar.length().unwrap_or(0))
     }
@@ -142,13 +145,16 @@ pub struct Downloader {
     config: DownloadConfig,
 }
 
-impl Downloader {
-    /// 创建新的下载器
+impl Downloader {    /// 创建新的下载器
+    #[must_use]
     pub fn new() -> Self {
         Self::with_config(DownloadConfig::default())
-    }
-
-    /// 使用指定配置创建下载器
+    }    /// 使用指定配置创建下载器
+    ///
+    /// # Panics
+    ///
+    /// Panics if the HTTP client cannot be created (should not happen with valid configuration)
+    #[must_use]
     pub fn with_config(config: DownloadConfig) -> Self {
         let mut client_builder = Client::builder()
             .timeout(Duration::from_secs(config.timeout_seconds))
@@ -164,9 +170,15 @@ impl Downloader {
         let client = client_builder.build().expect("Failed to create HTTP client");
 
         Self { client, config }
-    }
-
-    /// 下载文件（支持分片下载和多线程）
+    }    /// 下载文件（支持分片下载和多线程）
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Network request fails
+    /// - File I/O operations fail
+    /// - Download validation fails
+    /// - Server does not support range requests when chunked download is attempted
     pub async fn download<P: AsRef<Path>>(
         &self,
         url: &str,
@@ -225,13 +237,10 @@ impl Downloader {
             .get("content-length")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
-            .ok_or(DownloadError::FileSizeUnavailable)?;
-
-        let supports_ranges = response
+            .ok_or(DownloadError::FileSizeUnavailable)?;        let supports_ranges = response
             .headers()
             .get("accept-ranges")
-            .map(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes")
-            .unwrap_or(false);
+            .is_some_and(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes");
 
         debug!("File size: {file_size} bytes, supports ranges: {supports_ranges}");
         Ok((file_size, supports_ranges))
@@ -245,7 +254,7 @@ impl Downloader {
         progress_reporter: Option<ProgressReporter>,
     ) -> DownloadResult<()> {
         for attempt in 1..=self.config.max_retries {
-            match self.try_download_single(url, &output_path, &progress_reporter).await {
+            match self.try_download_single(url, &output_path, progress_reporter.as_ref()).await {
                 Ok(()) => {
                     if let Some(ref reporter) = progress_reporter {
                         reporter.finish();
@@ -264,15 +273,15 @@ impl Downloader {
             }
         }
         unreachable!()
-    }
-
-    /// 单次下载尝试
+    }    /// 单次下载尝试
     async fn try_download_single<P: AsRef<Path>>(
         &self,
         url: &str,
         output_path: P,
-        progress_reporter: &Option<ProgressReporter>,
+        progress_reporter: Option<&ProgressReporter>,
     ) -> DownloadResult<()> {
+        use futures::stream::StreamExt;
+        
         let output_path = output_path.as_ref();
 
         // 创建临时文件路径，添加 .tmp 后缀
@@ -298,10 +307,7 @@ impl Downloader {
         }
 
         let mut file = File::create(&temp_path).await?;
-        let mut downloaded: u64 = 0;
-
-        let mut stream = response.bytes_stream();
-        use futures::stream::StreamExt;
+        let mut downloaded: u64 = 0;        let mut stream = response.bytes_stream();
 
         // 下载过程中如果出错，确保清理临时文件
         let download_result = async {
@@ -309,9 +315,7 @@ impl Downloader {
                 let chunk = chunk_result?;
                 file.write_all(&chunk).await?;
 
-                downloaded += chunk.len() as u64;
-
-                if let Some(ref reporter) = progress_reporter {
+                downloaded += chunk.len() as u64;                if let Some(reporter) = progress_reporter {
                     reporter.update(downloaded);
                 }
             }
@@ -342,9 +346,8 @@ impl Downloader {
                 Err(e)
             }
         }
-    }
-
-    /// 分片下载
+    }    /// 分片下载
+    #[allow(clippy::too_many_lines)]
     async fn download_chunked<P: AsRef<Path>>(
         &self,
         url: &str,
@@ -429,7 +432,7 @@ impl Downloader {
                         chunk_end,
                         Arc::clone(&file),
                         Arc::clone(&progress_counter),
-                        &progress_reporter,
+                        progress_reporter.as_ref(),
                     )
                     .await
                     {
@@ -492,9 +495,7 @@ impl Downloader {
                 Err(e)
             }
         }
-    }
-
-    /// 下载单个分片
+    }    /// 下载单个分片
     async fn download_chunk(
         client: &Client,
         url: &str,
@@ -502,7 +503,7 @@ impl Downloader {
         end: u64,
         file: Arc<Mutex<File>>,
         progress_counter: Arc<Mutex<u64>>,
-        progress_reporter: &Option<ProgressReporter>,
+        progress_reporter: Option<&ProgressReporter>,
     ) -> DownloadResult<()> {
         use tokio::io::{AsyncSeekExt, AsyncWriteExt, SeekFrom};
 
@@ -531,8 +532,7 @@ impl Downloader {
         // 更新进度
         {
             let mut counter = progress_counter.lock().await;
-            *counter += chunk_data.len() as u64;
-            if let Some(ref reporter) = progress_reporter {
+            *counter += chunk_data.len() as u64;            if let Some(reporter) = progress_reporter {
                 reporter.update(*counter);
             }
         }
@@ -542,6 +542,14 @@ impl Downloader {
     }
 
     /// 获取文件大小
+    /// 获取文件大小
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Network request fails
+    /// - Server does not provide content-length header
+    /// - Content-length value is invalid
     pub async fn get_file_size(&self, url: &str) -> DownloadResult<u64> {
         let (file_size, _) = self.get_file_info(url).await?;
         Ok(file_size)

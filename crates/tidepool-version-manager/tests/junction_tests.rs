@@ -33,7 +33,7 @@ mod tests {
 
         // 测试应该成功（在真实环境中）或者失败并返回有意义的错误消息
         match result {
-            Ok(_) => {
+            Ok(()) => {
                 // 验证junction是否创建
                 let junction_path = temp_dir.path().join("current");
                 assert!(junction_path.exists());

@@ -7,6 +7,10 @@ use tidepool_version_manager::{
     UninstallRequest, VersionManager,
 };
 
+/// Install a Go version.
+///
+/// # Errors
+/// Returns an error if the installation fails, network issues occur, or file system operations fail.
 pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> {
     let ui = UI::new();
     let manager = GoManager::new();
@@ -59,7 +63,7 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
     if cached_file.exists() && !force {
         ui.info(&Messages::found_cached_download(version));
         // 从缓存解压安装
-        return install_from_cache(version, &cached_file, &version_dir, &manager, &ui).await;
+        return install_from_cache(version, &cached_file, &version_dir, &manager, &ui);
     } // 缓存和版本目录都不存在，需要下载
     ui.info(&format!("Go {version} not found in cache, downloading..."));
 
@@ -71,6 +75,10 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
     download_and_install(version, install_dir, cache_dir, &manager, &ui, force).await
 }
 
+/// Uninstall a Go version.
+///
+/// # Errors
+/// Returns an error if the uninstallation fails or file system operations fail.
 pub fn uninstall(version: &str, config: &Config) -> Result<()> {
     let ui = UI::new();
     let manager = GoManager::new();
@@ -103,16 +111,19 @@ pub fn uninstall(version: &str, config: &Config) -> Result<()> {
     Ok(())
 }
 
-pub async fn list(show_available: bool, config: &Config) -> Result<()> {
-    if show_available {
+/// List installed or available Go versions.
+///
+/// # Errors
+/// Returns an error if the listing operation fails or network issues occur when fetching available versions.
+pub async fn list(show_available: bool, config: &Config) -> Result<()> {    if show_available {
         list_available_versions().await?;
     } else {
-        list_installed_versions(config)?;
+        list_installed_versions(config);
     }
     Ok(())
 }
 
-fn list_installed_versions(config: &Config) -> Result<()> {
+fn list_installed_versions(config: &Config) {
     let ui = UI::new();
     let manager = GoManager::new();
     let base_dir = config.versions();
@@ -121,14 +132,13 @@ fn list_installed_versions(config: &Config) -> Result<()> {
 
     match manager.list_installed(list_request) {
         Ok(version_list) => {
-            if version_list.versions.is_empty() {
-                if !base_dir.exists() {
-                    ui.warning(&Messages::installation_directory_not_found(
-                        &base_dir.display().to_string(),
-                    ));
-                } else {
-                    ui.warning(&Messages::no_go_versions_found());
-                }
+            if version_list.versions.is_empty() {            if base_dir.exists() {
+                ui.warning(&Messages::no_go_versions_found());
+            } else {
+                ui.warning(&Messages::installation_directory_not_found(
+                    &base_dir.display().to_string(),
+                ));
+            }
                 ui.hint(&Messages::install_version_hint());
             } else {
                 // 获取当前使用的版本
@@ -140,14 +150,11 @@ fn list_installed_versions(config: &Config) -> Result<()> {
                     current_version.as_deref(),
                 );
                 ui.hint(&Messages::use_version_hint());
-            }
-        }
+            }        }
         Err(e) => {
             ui.error(&Messages::error_listing_versions(&e.to_string()));
         }
     }
-
-    Ok(())
 }
 
 async fn list_available_versions() -> Result<()> {
@@ -168,6 +175,11 @@ async fn list_available_versions() -> Result<()> {
     Ok(())
 }
 
+/// Show status of current Go installation.
+///
+/// # Errors
+/// Returns an error if the status check fails or file system operations fail.
+#[allow(clippy::unnecessary_wraps)]
 pub fn status(config: &Config) -> Result<()> {
     let ui = UI::new();
     let manager = GoManager::new();
@@ -218,6 +230,10 @@ pub fn status(config: &Config) -> Result<()> {
 }
 
 /// Display detailed information about a specified Go version
+/// Show information about a specific Go version.
+///
+/// # Errors
+/// Returns an error if the information retrieval fails or network issues occur.
 pub async fn info(version: &str, config: &Config) -> Result<()> {
     let ui = UI::new();
     let manager = GoManager::new();
@@ -278,7 +294,7 @@ fn switch_to_existing_version(
 }
 
 /// Helper function to install from cached archive
-async fn install_from_cache(
+fn install_from_cache(
     version: &str,
     cached_file: &Path,
     version_dir: &Path,
