@@ -264,7 +264,7 @@ fn test_install_cache_functionality() {
     };
 
     let extension = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
-    let archive_name = format!("go{}.{}-{}.{}", version, os, arch, extension);
+    let archive_name = format!("go{version}.{os}-{arch}.{extension}");
     let cache_file = download_dir.join(&archive_name);
 
     // 创建一个模拟的缓存文件（非空）
@@ -303,7 +303,7 @@ fn test_install_empty_cache_file() {
     };
 
     let extension = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
-    let archive_name = format!("go{}.{}-{}.{}", version, os, arch, extension);
+    let archive_name = format!("go{version}.{os}-{arch}.{extension}");
     let cache_file = download_dir.join(&archive_name);
 
     // 创建一个空的缓存文件

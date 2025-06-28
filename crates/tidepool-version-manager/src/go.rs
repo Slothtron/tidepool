@@ -85,7 +85,7 @@ impl GoManager {
         let junction_path = base_dir.join("current");
 
         if !version_path.exists() {
-            return Err(format!("Go version {} is not installed", version));
+            return Err(format!("Go version {version} is not installed"));
         }
 
         // 验证Go安装的完整性
@@ -97,12 +97,12 @@ impl GoManager {
             ));
         }
 
-        debug!("Creating junction point for Go version {}", version);
+        debug!("Creating junction point for Go version {version}");
 
         // 删除现有的junction或目录
         if junction_path.exists() && junction_path.is_dir() {
             std::fs::remove_dir_all(&junction_path)
-                .map_err(|e| format!("Failed to remove existing directory: {}", e))?;
+                .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
         }
 
         // 使用mklink命令创建junction (不需要管理员权限)
@@ -115,14 +115,14 @@ impl GoManager {
                 &version_path.to_string_lossy(),
             ])
             .output()
-            .map_err(|e| format!("Failed to execute mklink: {}", e))?;
+            .map_err(|e| format!("Failed to execute mklink: {e}"))?;
 
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to create junction: {}", error_msg));
+            return Err(format!("Failed to create junction: {error_msg}"));
         }
 
-        info!("Successfully created junction point for Go version {}", version);
+        info!("Successfully created junction point for Go version {version}");
 
         // 验证junction是否正确创建
         if !junction_path.exists() {
@@ -133,8 +133,8 @@ impl GoManager {
         if !junction_go_exe.exists() {
             return Err("Junction target is invalid: missing go.exe".to_string());
         }
-        debug!("Successfully created junction point for Go version {}", version);
-        debug!("Environment variables updated for Go version {}", version);
+        debug!("Successfully created junction point for Go version {version}");
+        debug!("Environment variables updated for Go version {version}");
         Ok(())
     }
 
@@ -274,16 +274,16 @@ impl GoManager {
         use std::fs::File;
         use std::io::BufReader;
 
-        let file = File::open(zip_path).map_err(|e| format!("Failed to open zip file: {}", e))?;
+        let file = File::open(zip_path).map_err(|e| format!("Failed to open zip file: {e}"))?;
         let reader = BufReader::new(file);
 
-        let mut archive = zip::ZipArchive::new(reader)
-            .map_err(|e| format!("Failed to read zip archive: {}", e))?;
+        let mut archive =
+            zip::ZipArchive::new(reader).map_err(|e| format!("Failed to read zip archive: {e}"))?;
 
         for i in 0..archive.len() {
             let mut file = archive
                 .by_index(i)
-                .map_err(|e| format!("Failed to access file in archive: {}", e))?;
+                .map_err(|e| format!("Failed to access file in archive: {e}"))?;
 
             let file_path = match file.enclosed_name() {
                 Some(path) => path,
@@ -307,21 +307,21 @@ impl GoManager {
             if file.name().ends_with('/') {
                 // Directory
                 std::fs::create_dir_all(&outpath)
-                    .map_err(|e| format!("Failed to create directory: {}", e))?;
+                    .map_err(|e| format!("Failed to create directory: {e}"))?;
             } else {
                 // File
                 if let Some(p) = outpath.parent() {
                     if !p.exists() {
                         std::fs::create_dir_all(p)
-                            .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+                            .map_err(|e| format!("Failed to create parent directory: {e}"))?;
                     }
                 }
 
                 let mut outfile = File::create(&outpath)
-                    .map_err(|e| format!("Failed to create output file: {}", e))?;
+                    .map_err(|e| format!("Failed to create output file: {e}"))?;
 
                 std::io::copy(&mut file, &mut outfile)
-                    .map_err(|e| format!("Failed to extract file: {}", e))?;
+                    .map_err(|e| format!("Failed to extract file: {e}"))?;
             }
         }
 
@@ -381,14 +381,14 @@ impl GoManager {
     pub async fn calculate_file_hash(&self, file_path: &Path) -> Result<String, String> {
         let mut file = tokio::fs::File::open(file_path)
             .await
-            .map_err(|e| format!("Failed to open file for hash calculation: {}", e))?;
+            .map_err(|e| format!("Failed to open file for hash calculation: {e}"))?;
 
         let mut hasher = Sha256::new();
         let mut buffer = vec![0u8; 8192]; // 8KB 缓冲区
 
         loop {
             let bytes_read =
-                file.read(&mut buffer).await.map_err(|e| format!("Error reading file: {}", e))?;
+                file.read(&mut buffer).await.map_err(|e| format!("Error reading file: {e}"))?;
 
             if bytes_read == 0 {
                 break;
@@ -398,7 +398,7 @@ impl GoManager {
         }
 
         let result = hasher.finalize();
-        Ok(format!("{:x}", result))
+        Ok(format!("{result:x}"))
     }
 
     /// 获取 Go 版本的官方 SHA256 校验和
@@ -412,25 +412,25 @@ impl GoManager {
         let client = reqwest::Client::new();
         let checksums_url = "https://go.dev/dl/?mode=json&include=all".to_string();
 
-        debug!("Fetching official checksums: {}", checksums_url);
+        debug!("Fetching official checksums: {checksums_url}");
 
         let response = client
             .get(&checksums_url)
             .send()
             .await
-            .map_err(|e| format!("Failed to fetch checksums: {}", e))?;
+            .map_err(|e| format!("Failed to fetch checksums: {e}"))?;
 
         let versions: serde_json::Value =
-            response.json().await.map_err(|e| format!("Failed to parse checksum data: {}", e))?;
+            response.json().await.map_err(|e| format!("Failed to parse checksum data: {e}"))?;
 
-        let filename = format!("go{}.{}-{}.{}", version, os, arch, extension);
-        debug!("Looking for checksum for file: {}", filename);
+        let filename = format!("go{version}.{os}-{arch}.{extension}");
+        debug!("Looking for checksum for file: {filename}");
 
         // 查找对应版本和文件的校验和
         if let Some(releases) = versions.as_array() {
             for release in releases {
                 if let Some(version_str) = release.get("version").and_then(|v| v.as_str()) {
-                    if version_str == format!("go{}", version) {
+                    if version_str == format!("go{version}") {
                         if let Some(files) = release.get("files").and_then(|f| f.as_array()) {
                             for file in files {
                                 if let Some(file_name) =
@@ -440,7 +440,7 @@ impl GoManager {
                                         if let Some(sha256) =
                                             file.get("sha256").and_then(|s| s.as_str())
                                         {
-                                            debug!("Found official checksum: {}", sha256);
+                                            debug!("Found official checksum: {sha256}");
                                             return Ok(sha256.to_string());
                                         }
                                     }
@@ -452,7 +452,7 @@ impl GoManager {
             }
         }
 
-        Err(format!("Official checksum not found for Go {} ({})", version, filename))
+        Err(format!("Official checksum not found for Go {version} ({filename})"))
     }
 
     /// 校验下载文件的完整性
@@ -468,11 +468,11 @@ impl GoManager {
 
         // 计算下载文件的哈希值
         let file_hash = self.calculate_file_hash(file_path).await?;
-        debug!("File hash: {}", file_hash);
+        debug!("File hash: {file_hash}");
 
         // 获取官方校验和
         let official_hash = self.get_official_checksum(version, os, arch, extension).await?;
-        debug!("Official hash: {}", official_hash);
+        debug!("Official hash: {official_hash}");
 
         // 比较哈希值
         if file_hash.to_lowercase() == official_hash.to_lowercase() {
@@ -480,8 +480,7 @@ impl GoManager {
             Ok(())
         } else {
             Err(format!(
-                "File integrity verification failed!\nExpected: {}\nActual: {}",
-                official_hash, file_hash
+                "File integrity verification failed!\nExpected: {official_hash}\nActual: {file_hash}"
             ))
         }
     }
@@ -524,8 +523,8 @@ impl GoManager {
         };
 
         let extension = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
-        let filename = format!("go{}.{}-{}.{}", version, os, arch, extension);
-        let download_url = format!("https://go.dev/dl/{}", filename);
+        let filename = format!("go{version}.{os}-{arch}.{extension}");
+        let download_url = format!("https://go.dev/dl/{filename}");
 
         // 检查是否已安装
         let install_path = install_dir.join(version);
@@ -552,16 +551,16 @@ impl GoManager {
             std::fs::metadata(&cache_path).ok().map(|m| m.len())
         } else {
             // 如果未缓存，尝试通过网络获取文件大小
-            debug!("Getting size from network for: {}", download_url);
+            debug!("Getting size from network for: {download_url}");
             use crate::downloader::Downloader;
             let downloader = Downloader::new();
             match downloader.get_file_size(&download_url).await {
                 Ok(size) => {
-                    debug!("Successfully got file size from network: {} bytes", size);
+                    debug!("Successfully got file size from network: {size} bytes");
                     Some(size)
                 }
                 Err(e) => {
-                    debug!("Failed to get file size from network: {}", e);
+                    debug!("Failed to get file size from network: {e}");
                     None
                 }
             }
@@ -605,17 +604,17 @@ impl VersionManager for GoManager {
         // 创建版本目录
         let version_dir = install_dir.join(version);
         if version_dir.exists() && !force {
-            return Err(format!("Go version {} is already installed", version));
+            return Err(format!("Go version {version} is already installed"));
         }
 
         // 如果强制安装且版本目录存在，删除现有目录
         if force && version_dir.exists() {
             std::fs::remove_dir_all(&version_dir)
-                .map_err(|e| format!("Failed to remove existing version directory: {}", e))?;
+                .map_err(|e| format!("Failed to remove existing version directory: {e}"))?;
         }
 
         std::fs::create_dir_all(&version_dir)
-            .map_err(|e| format!("Failed to create version directory: {}", e))?;
+            .map_err(|e| format!("Failed to create version directory: {e}"))?;
 
         // 构建下载URL
         let (os, arch) = if cfg!(target_os = "windows") {
@@ -627,10 +626,10 @@ impl VersionManager for GoManager {
         };
 
         let extension = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
-        let download_url = format!("https://go.dev/dl/go{}.{}-{}.{}", version, os, arch, extension);
+        let download_url = format!("https://go.dev/dl/go{version}.{os}-{arch}.{extension}");
 
         // 设置下载文件名和路径
-        let archive_name = format!("go{}.{}-{}.{}", version, os, arch, extension);
+        let archive_name = format!("go{version}.{os}-{arch}.{extension}");
 
         // 验证下载目录存在
         if !download_dir.exists() {
@@ -652,9 +651,9 @@ impl VersionManager for GoManager {
             if download_path.exists() {
                 debug!("Force mode: removing existing cached file");
                 std::fs::remove_file(&download_path)
-                    .map_err(|e| format!("Failed to remove cached file: {}", e))?;
+                    .map_err(|e| format!("Failed to remove cached file: {e}"))?;
             }
-            debug!("Force mode: downloading Go {} from {}", version, download_url);
+            debug!("Force mode: downloading Go {version} from {download_url}");
             true
         } else if download_path.exists() {
             debug!("Found cached file: {}", download_path.display());
@@ -669,7 +668,7 @@ impl VersionManager for GoManager {
                 true
             }
         } else {
-            debug!("Downloading Go {} from {}", version, download_url);
+            debug!("Downloading Go {version} from {download_url}");
             true
         };
 
@@ -680,13 +679,13 @@ impl VersionManager for GoManager {
 
             // 先获取文件大小，然后创建正确大小的进度报告器
             let file_size =
-                downloader.get_file_size(&download_url).await.map_err(|e| format!("{}", e))?;
+                downloader.get_file_size(&download_url).await.map_err(|e| format!("{e}"))?;
             let progress_reporter = ProgressReporter::new(file_size);
 
             downloader
                 .download(&download_url, &download_path, Some(progress_reporter))
                 .await
-                .map_err(|e| format!("{}", e))?;
+                .map_err(|e| format!("{e}"))?;
 
             // 下载完成后立即校验文件完整性
             debug!("Verifying downloaded file integrity");
@@ -701,7 +700,7 @@ impl VersionManager for GoManager {
                             download_path.display()
                         );
                     }
-                    format!("File integrity verification failed: {}", e)
+                    format!("File integrity verification failed: {e}")
                 })?;
         } else {
             // 即使是缓存文件，也要进行完整性校验
@@ -718,8 +717,7 @@ impl VersionManager for GoManager {
                         );
                     }
                     format!(
-                        "Cached file integrity verification failed, recommend re-downloading: {}",
-                        e
+                        "Cached file integrity verification failed, recommend re-downloading: {e}"
                     )
                 })?;
         }
@@ -751,21 +749,20 @@ impl VersionManager for GoManager {
         let version_path = base_dir.join(version);
 
         if !version_path.exists() {
-            return Err(format!("Go version {} is not installed", version));
+            return Err(format!("Go version {version} is not installed"));
         }
 
         // 检查要卸载的版本是否为当前活跃版本
         if let Some(current_version) = self.get_current_version(base_dir) {
             if current_version == *version {
                 return Err(format!(
-                    "Cannot uninstall Go {} as it is currently active. Please switch to another version or clear the current symlink first.",
-                    version
+                    "Cannot uninstall Go {version} as it is currently active. Please switch to another version or clear the current symlink first."
                 ));
             }
         }
 
         std::fs::remove_dir_all(&version_path)
-            .map_err(|e| format!("Failed to remove Go {}: {}", version, e))?;
+            .map_err(|e| format!("Failed to remove Go {version}: {e}"))?;
 
         Ok(())
     }
@@ -808,7 +805,7 @@ impl VersionManager for GoManager {
                     }
                 }
             }
-            Err(e) => return Err(format!("Failed to read directory: {}", e)),
+            Err(e) => return Err(format!("Failed to read directory: {e}")),
         }
 
         versions.sort();
@@ -822,8 +819,8 @@ impl VersionManager for GoManager {
         // 从Go官方API获取版本列表
         let url = "https://go.dev/dl/?mode=json";
 
-        let resp = reqwest::get(url).await.map_err(|e| format!("{}", e))?;
-        let releases: serde_json::Value = resp.json().await.map_err(|e| format!("{}", e))?;
+        let resp = reqwest::get(url).await.map_err(|e| format!("{e}"))?;
+        let releases: serde_json::Value = resp.json().await.map_err(|e| format!("{e}"))?;
 
         let mut versions = Vec::new();
 

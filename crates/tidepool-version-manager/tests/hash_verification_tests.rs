@@ -47,7 +47,7 @@ async fn test_calculate_file_hash() {
         fs::write(&test_file, content).expect("无法创建测试文件");
 
         let result = manager.calculate_file_hash(&test_file).await;
-        assert!(result.is_ok(), "计算 {} 的哈希值应该成功", filename);
+        assert!(result.is_ok(), "计算 {filename} 的哈希值应该成功");
 
         let hash = result.unwrap();
         assert_eq!(hash.len(), 64, "SHA256 哈希值应该是 64 个字符");
@@ -108,7 +108,7 @@ async fn test_large_file_hash_performance() {
     let duration = start.elapsed();
 
     assert!(result.is_ok(), "计算大文件的哈希值应该成功");
-    println!("计算 1MB 文件哈希耗时: {:?}", duration);
+    println!("计算 1MB 文件哈希耗时: {duration:?}");
 
     // 验证哈希值格式正确
     let hash = result.unwrap();
@@ -138,7 +138,7 @@ async fn test_hash_consistency() {
     assert_eq!(hash1, hash2, "相同内容的文件应该有相同的哈希值");
 
     // 修改其中一个文件
-    fs::write(&file2, format!("{} modified", content)).expect("无法修改文件2");
+    fs::write(&file2, format!("{content} modified")).expect("无法修改文件2");
     let hash2_modified =
         manager.calculate_file_hash(&file2).await.expect("计算修改后文件2哈希失败");
 

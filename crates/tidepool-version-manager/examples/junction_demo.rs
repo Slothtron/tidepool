@@ -25,7 +25,7 @@ fn main() {
     // 显示当前状态
     println!("\n📊 当前状态:");
     if let Some(current) = manager.get_current_version(&base_dir) {
-        println!("  当前版本: {}", current);
+        println!("  当前版本: {current}");
     } else {
         println!("  当前版本: 未设置");
     }
@@ -34,19 +34,19 @@ fn main() {
     #[cfg(windows)]
     {
         let junction_info = manager.get_symlink_info(&base_dir);
-        println!("  Junction状态: {}", junction_info);
+        println!("  Junction状态: {junction_info}");
     }
 
     // 显示环境变量
     println!("\n🌐 环境变量:");
     if let Ok(goroot) = env::var("GOROOT") {
-        println!("  GOROOT: {}", goroot);
+        println!("  GOROOT: {goroot}");
     } else {
         println!("  GOROOT: 未设置");
     }
 
     if let Ok(gopath) = env::var("GOPATH") {
-        println!("  GOPATH: {}", gopath);
+        println!("  GOPATH: {gopath}");
     } else {
         println!("  GOPATH: 未设置");
     }

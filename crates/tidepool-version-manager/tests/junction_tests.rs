@@ -17,7 +17,7 @@ mod tests {
 
         // 创建模拟的go.exe文件
         let go_exe = bin_dir.join("go.exe");
-        fs::write(&go_exe, format!("fake go executable {}", version)).unwrap();
+        fs::write(&go_exe, format!("fake go executable {version}")).unwrap();
     }
 
     #[test]

@@ -129,7 +129,7 @@ impl UI {
 
     /// Print key-value pair
     pub fn kv_pair(&self, key: &str, value: &str) {
-        println!("  {} {}", style(format!("{}:", key)).dim(), value);
+        println!("  {} {}", style(format!("{key}:")).dim(), value);
     }
 
     /// Print key-value pair with colored value
@@ -143,12 +143,12 @@ impl UI {
             "dimmed" => style(value).dim(),
             _ => style(value),
         };
-        println!("  {} {}", style(format!("{}:", key)).dim(), styled_value);
+        println!("  {} {}", style(format!("{key}:")).dim(), styled_value);
     }
 
     /// Print a list item
     pub fn list_item(&self, icon: &str, text: &str) {
-        println!("  {} {}", icon, text);
+        println!("  {icon} {text}");
     }
     /// Print an empty line
     pub fn newline(&self) {
@@ -242,7 +242,7 @@ impl UI {
         // File size
         if let Some(size) = info.size {
             let size_mb = size as f64 / 1024.0 / 1024.0;
-            self.kv_pair("Size", &format!("{:.1} MB ({} bytes)", size_mb, size));
+            self.kv_pair("Size", &format!("{size_mb:.1} MB ({size} bytes)"));
         } else {
             self.kv_pair_colored("Size", "Unknown", "dimmed");
         }
@@ -295,7 +295,7 @@ impl UI {
         }
 
         self.newline();
-        self.hint(&format!("💡 切换完成！现在可以使用 Go {} 了", version));
+        self.hint(&format!("💡 切换完成！现在可以使用 Go {version} 了"));
         self.hint("   运行 'go version' 验证当前版本");
     }
 
@@ -306,7 +306,7 @@ impl UI {
         go_root: &std::path::Path,
         version: &str,
     ) {
-        self.info(&format!("已切换到 Go {}，以下是环境变量配置说明：", version));
+        self.info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
         self.newline();
 
         // PowerShell 配置
@@ -343,7 +343,7 @@ impl UI {
         go_root: &std::path::Path,
         version: &str,
     ) {
-        self.info(&format!("已切换到 Go {}，以下是环境变量配置说明：", version));
+        self.info(&format!("已切换到 Go {version}，以下是环境变量配置说明："));
         self.newline();
 
         // 临时配置
@@ -365,7 +365,7 @@ impl UI {
         };
 
         // 永久配置
-        self.list_item("🟢", &format!("{} 永久配置（添加到 {}）:", shell_name, config_file));
+        self.list_item("🟢", &format!("{shell_name} 永久配置（添加到 {config_file}）:"));
 
         if shell.contains("fish") {
             // Fish shell 语法
@@ -385,11 +385,11 @@ impl UI {
         // 快速应用配置的说明
         self.list_item("⚡", "立即应用配置:");
         if shell.contains("fish") {
-            self.hint(&format!("   source {}", config_file));
+            self.hint(&format!("   source {config_file}"));
         } else if shell.contains("nu") {
             self.hint("   重启 NuShell 或重新加载配置");
         } else {
-            self.hint(&format!("   source {}", config_file));
+            self.hint(&format!("   source {config_file}"));
         }
 
         // macOS 特殊说明
@@ -503,7 +503,7 @@ impl Messages {
     }
 
     pub fn error_getting_available_versions(error: &str) -> String {
-        format!("Error getting available versions: {}", error)
+        format!("Error getting available versions: {error}")
     }
 
     pub fn visit_go_website() -> String {
@@ -521,7 +521,7 @@ impl Messages {
         format!("Switch failed: {}", style(error).red())
     }
     pub fn error_getting_status(error: &str) -> String {
-        format!("Error getting status: {}", error)
+        format!("Error getting status: {error}")
     }
 
     pub fn removing_existing_installation(version: &str) -> String {

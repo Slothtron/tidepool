@@ -33,7 +33,7 @@ async fn test_temp_file_download_mechanism() {
     // 使用一个小的测试文件 URL（httpbin.org 提供测试服务）
     let test_url = "https://httpbin.org/bytes/1024"; // 下载 1KB 测试数据
 
-    println!("🌐 测试 URL: {}", test_url);
+    println!("🌐 测试 URL: {test_url}");
 
     // 确认文件开始时不存在
     assert!(!target_file.exists(), "目标文件不应该预先存在");
@@ -55,11 +55,11 @@ async fn test_temp_file_download_mechanism() {
             let file_size = std::fs::metadata(&target_file).unwrap().len();
             assert_eq!(file_size, 1024, "文件大小应该为 1024 字节");
 
-            println!("✅ 文件大小验证通过: {} 字节", file_size);
+            println!("✅ 文件大小验证通过: {file_size} 字节");
             println!("✅ 所有验证通过，临时文件机制工作正常");
         }
         Err(e) => {
-            println!("❌ 下载失败: {}", e);
+            println!("❌ 下载失败: {e}");
 
             // 即使下载失败，也要验证清理逻辑
             assert!(!target_file.exists(), "下载失败时目标文件不应该存在");
@@ -73,7 +73,7 @@ async fn test_temp_file_download_mechanism() {
                 return;
             }
 
-            panic!("下载测试失败: {}", e);
+            panic!("下载测试失败: {e}");
         }
     }
 }
@@ -108,7 +108,7 @@ async fn test_chunked_temp_file_download() {
     // 使用较大的测试文件以触发分片下载
     let test_url = "https://httpbin.org/bytes/4096"; // 下载 4KB 测试数据
 
-    println!("🌐 测试 URL: {}", test_url);
+    println!("🌐 测试 URL: {test_url}");
 
     // 确认文件开始时不存在
     assert!(!target_file.exists(), "目标文件不应该预先存在");
@@ -130,11 +130,11 @@ async fn test_chunked_temp_file_download() {
             let file_size = std::fs::metadata(&target_file).unwrap().len();
             assert_eq!(file_size, 4096, "文件大小应该为 4096 字节");
 
-            println!("✅ 文件大小验证通过: {} 字节", file_size);
+            println!("✅ 文件大小验证通过: {file_size} 字节");
             println!("✅ 所有验证通过，分片临时文件机制工作正常");
         }
         Err(e) => {
-            println!("❌ 分片下载失败: {}", e);
+            println!("❌ 分片下载失败: {e}");
 
             // 验证清理逻辑
             assert!(!target_file.exists(), "下载失败时目标文件不应该存在");
@@ -149,7 +149,7 @@ async fn test_chunked_temp_file_download() {
                 return;
             }
 
-            panic!("分片下载测试失败: {}", e);
+            panic!("分片下载测试失败: {e}");
         }
     }
 }
@@ -177,7 +177,7 @@ fn test_temp_file_path_generation() {
         let temp_name = temp_path.file_name().unwrap().to_string_lossy();
         assert_eq!(temp_name, expected, "临时文件名生成不正确");
 
-        println!("✅ {} -> {}", input, temp_name);
+        println!("✅ {input} -> {temp_name}");
     }
 
     println!("✅ 临时文件路径生成逻辑验证通过");

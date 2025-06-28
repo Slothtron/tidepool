@@ -199,17 +199,17 @@ impl Downloader {
             && self.config.concurrent_connections > 1;
 
         if use_chunked {
-            info!("Using chunked download mode, file size: {} bytes", file_size);
+            info!("Using chunked download mode, file size: {file_size} bytes");
             self.download_chunked(url, output_path, file_size, reporter).await
         } else {
-            info!("Using single-threaded download mode, file size: {} bytes", file_size);
+            info!("Using single-threaded download mode, file size: {file_size} bytes");
             self.download_single(url, output_path, reporter).await
         }
     }
 
     /// 获取文件信息（大小和是否支持范围请求）
     async fn get_file_info(&self, url: &str) -> DownloadResult<(u64, bool)> {
-        debug!("Getting file info: {}", url);
+        debug!("Getting file info: {url}");
 
         let response = self.client.head(url).send().await?;
 
@@ -233,7 +233,7 @@ impl Downloader {
             .map(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes")
             .unwrap_or(false);
 
-        debug!("File size: {} bytes, supports ranges: {}", file_size, supports_ranges);
+        debug!("File size: {file_size} bytes, supports ranges: {supports_ranges}");
         Ok((file_size, supports_ranges))
     }
 
@@ -436,8 +436,7 @@ impl Downloader {
                         Ok(()) => return Ok(()),
                         Err(e) => {
                             warn!(
-                                "分片 {}-{} 下载尝试 {}/{} 失败: {}",
-                                chunk_start, chunk_end, attempt, max_retries, e
+                                "分片 {chunk_start}-{chunk_end} 下载尝试 {attempt}/{max_retries} 失败: {e}"
                             );
                             if attempt < max_retries {
                                 tokio::time::sleep(Duration::from_millis(retry_delay)).await;
@@ -456,9 +455,7 @@ impl Downloader {
         // 等待所有分片下载完成
         let download_result = async {
             for handle in handles {
-                handle
-                    .await
-                    .map_err(|e| DownloadError::Other(format!("任务执行错误: {}", e)))??;
+                handle.await.map_err(|e| DownloadError::Other(format!("任务执行错误: {e}")))??;
             }
             Ok::<(), DownloadError>(())
         }
@@ -509,9 +506,9 @@ impl Downloader {
     ) -> DownloadResult<()> {
         use tokio::io::{AsyncSeekExt, AsyncWriteExt, SeekFrom};
 
-        debug!("下载分片: {}-{}", start, end);
+        debug!("下载分片: {start}-{end}");
 
-        let range_header = format!("bytes={}-{}", start, end);
+        let range_header = format!("bytes={start}-{end}");
         let response = client.get(url).header("Range", range_header).send().await?;
 
         if !response.status().is_success() && response.status().as_u16() != 206 {
@@ -540,7 +537,7 @@ impl Downloader {
             }
         }
 
-        debug!("分片 {}-{} 下载完成", start, end);
+        debug!("分片 {start}-{end} 下载完成");
         Ok(())
     }
 

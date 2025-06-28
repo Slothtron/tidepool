@@ -18,7 +18,7 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
     // Check if the version directory already exists
     let version_dir = install_dir.join(version);
     if version_dir.exists() && !force {
-        ui.info(&format!("Go {} is already installed, switching to it", version));
+        ui.info(&format!("Go {version} is already installed, switching to it"));
 
         // 直接切换到已存在的版本
         let switch_request = SwitchRequest {
@@ -47,12 +47,12 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
         ("linux", if cfg!(target_arch = "x86_64") { "amd64" } else { "386" })
     };
     let extension = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
-    let archive_name = format!("go{}.{}-{}.{}", version, os, arch, extension);
+    let archive_name = format!("go{version}.{os}-{arch}.{extension}");
     let cached_file = cache_dir.join(&archive_name);
 
     // 如果强制安装，删除现有缓存文件
     if force && cached_file.exists() {
-        ui.info(&format!("Force mode: removing cached file for Go {}", version));
+        ui.info(&format!("Force mode: removing cached file for Go {version}"));
         fs::remove_file(&cached_file).ok();
     }
 
@@ -61,7 +61,7 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
         // 从缓存解压安装
         return install_from_cache(version, &cached_file, &version_dir, &manager, &ui).await;
     } // 缓存和版本目录都不存在，需要下载
-    ui.info(&format!("Go {} not found in cache, downloading...", version));
+    ui.info(&format!("Go {version} not found in cache, downloading..."));
 
     // 确保目录存在
     fs::create_dir_all(install_dir)
@@ -224,7 +224,7 @@ pub async fn info(version: &str, config: &Config) -> Result<()> {
     let install_dir = config.versions();
     let cache_dir = config.cache();
 
-    ui.header(&format!("Go {} Information", version));
+    ui.header(&format!("Go {version} Information"));
 
     match manager.get_version_info(version, install_dir, cache_dir).await {
         Ok(info) => {
@@ -232,7 +232,7 @@ pub async fn info(version: &str, config: &Config) -> Result<()> {
             Ok(())
         }
         Err(e) => {
-            ui.error(&format!("Failed to get version information: {}", e));
+            ui.error(&format!("Failed to get version information: {e}"));
             Err(anyhow::anyhow!("Failed to get version information: {}", e))
         }
     }
@@ -285,7 +285,7 @@ async fn install_from_cache(
     manager: &GoManager,
     ui: &UI,
 ) -> Result<()> {
-    ui.info(&format!("Extracting Go {} from cache...", version));
+    ui.info(&format!("Extracting Go {version} from cache..."));
 
     // 确保版本目录存在
     fs::create_dir_all(version_dir).with_context(|| {
@@ -297,7 +297,7 @@ async fn install_from_cache(
         .extract_archive(cached_file, version_dir)
         .map_err(|e| anyhow::anyhow!("Failed to extract archive: {}", e))?;
 
-    ui.success(&format!("Go {} extracted successfully from cache", version));
+    ui.success(&format!("Go {version} extracted successfully from cache"));
 
     // 切换到新安装的版本
     let switch_request = SwitchRequest {

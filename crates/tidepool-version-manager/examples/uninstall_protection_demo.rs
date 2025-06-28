@@ -37,12 +37,12 @@ fn demonstrate_uninstall_protection() {
 
     println!("📂 创建的测试版本:");
     for version in &versions {
-        println!("  • Go {}", version);
+        println!("  • Go {version}");
     }
-    println!("🔗 当前激活版本: Go {}", current_version);
+    println!("🔗 当前激活版本: Go {current_version}");
 
     println!("\n🔸 场景1: 尝试卸载当前版本 (应该被阻止)");
-    println!("执行: gvm uninstall {}", current_version);
+    println!("执行: gvm uninstall {current_version}");
 
     let uninstall_request =
         UninstallRequest { version: current_version.to_string(), base_dir: base_dir.clone() };
@@ -52,7 +52,7 @@ fn demonstrate_uninstall_protection() {
             println!("❌ 意外成功：不应该允许卸载当前版本！");
         }
         Err(error) => {
-            println!("✅ 正确阻止: {}", error);
+            println!("✅ 正确阻止: {error}");
             if error.contains("currently active") {
                 println!("💡 提示: 请先切换到其他版本或清除当前软链接");
             }
@@ -69,17 +69,17 @@ fn demonstrate_uninstall_protection() {
 
     println!("\n🔸 场景2: 卸载非当前版本 (应该允许)");
     let other_version = "1.20.5";
-    println!("执行: gvm uninstall {}", other_version);
+    println!("执行: gvm uninstall {other_version}");
 
     let uninstall_request =
         UninstallRequest { version: other_version.to_string(), base_dir: base_dir.clone() };
 
     match manager.uninstall(uninstall_request) {
         Ok(()) => {
-            println!("✅ 成功卸载非当前版本: Go {}", other_version);
+            println!("✅ 成功卸载非当前版本: Go {other_version}");
         }
         Err(error) => {
-            println!("❌ 意外失败: {}", error);
+            println!("❌ 意外失败: {error}");
         }
     }
 
@@ -116,8 +116,7 @@ fn create_mock_go_installation(base_dir: &Path, version: &str) {
     #[cfg(not(target_os = "windows"))]
     let go_binary = bin_dir.join("go");
 
-    fs::write(&go_binary, format!("fake go binary for {}", version))
-        .expect("无法创建 go 二进制文件");
+    fs::write(&go_binary, format!("fake go binary for {version}")).expect("无法创建 go 二进制文件");
 }
 
 fn create_current_symlink(base_dir: &Path, target_version: &str) {

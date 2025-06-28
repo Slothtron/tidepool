@@ -16,7 +16,7 @@ async fn test_version_manager_interface() {
             assert!(status.environment_vars.contains_key("GOPATH"));
             println!("✅ Status query returns structured data");
         }
-        Err(e) => println!("ℹ️  Status query failed (expected): {}", e),
+        Err(e) => println!("ℹ️  Status query failed (expected): {e}"),
     }
 
     // 测试版本列表查询 - 应该返回 VersionList 结构
@@ -29,10 +29,10 @@ async fn test_version_manager_interface() {
                 version_list.total_count
             );
         }
-        Err(e) => println!("ℹ️  List installed failed (expected for non-existent dir): {}", e),
+        Err(e) => println!("ℹ️  List installed failed (expected for non-existent dir): {e}"),
     }
     // 测试配置结构体 - 在当前实现中，配置通过请求结构体传递
     println!("✅ Request structures can be created successfully");
-    println!("   - StatusRequest with base_dir: {:?}", base_dir);
-    println!("   - ListInstalledRequest with base_dir: {:?}", base_dir);
+    println!("   - StatusRequest with base_dir: {base_dir:?}");
+    println!("   - ListInstalledRequest with base_dir: {base_dir:?}");
 }

@@ -72,8 +72,7 @@ fn test_cannot_uninstall_current_version() {
     let error_msg = result.unwrap_err();
     assert!(
         error_msg.contains("currently active"),
-        "错误信息应该指出版本正在被使用，实际错误: {}",
-        error_msg
+        "错误信息应该指出版本正在被使用，实际错误: {error_msg}"
     );
 
     // 验证版本目录仍然存在（没有被删除）
@@ -154,7 +153,7 @@ fn test_can_uninstall_non_current_version() {
         UninstallRequest { version: other_version.to_string(), base_dir: base_dir.clone() };
 
     let result = manager.uninstall(uninstall_request);
-    assert!(result.is_ok(), "卸载非当前版本应该成功，错误: {:?}", result);
+    assert!(result.is_ok(), "卸载非当前版本应该成功，错误: {result:?}");
 
     // 验证其他版本目录被删除，当前版本目录仍然存在
     assert!(!other_version_dir.exists(), "其他版本目录应该被删除");
@@ -193,7 +192,7 @@ fn test_uninstall_when_no_current_version() {
         UninstallRequest { version: version.to_string(), base_dir: base_dir.clone() };
 
     let result = manager.uninstall(uninstall_request);
-    assert!(result.is_ok(), "当没有当前版本时，卸载应该成功，错误: {:?}", result);
+    assert!(result.is_ok(), "当没有当前版本时，卸载应该成功，错误: {result:?}");
 
     // 验证版本目录被删除
     assert!(!version_dir.exists(), "版本目录应该被删除");
@@ -218,7 +217,6 @@ fn test_uninstall_non_existent_version() {
     let error_msg = result.unwrap_err();
     assert!(
         error_msg.contains("not installed"),
-        "错误信息应该指出版本未安装，实际错误: {}",
-        error_msg
+        "错误信息应该指出版本未安装，实际错误: {error_msg}"
     );
 }
