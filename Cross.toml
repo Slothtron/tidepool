@@ -2,13 +2,20 @@
 [build.env]
 passthrough = ["GITHUB_TOKEN", "CARGO_REGISTRY_TOKEN", "RUST_LOG"]
 
+# macOS 目标配置
+[target.x86_64-apple-darwin]
+image = "ghcr.io/cross-rs/x86_64-apple-darwin:edge"
+
+[target.aarch64-apple-darwin]
+image = "ghcr.io/cross-rs/aarch64-apple-darwin:edge"
+
 # Linux ARM64 配置
 [target.aarch64-unknown-linux-gnu]
 image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge"
 pre-build = [
     "dpkg --add-architecture arm64",
     "apt-get update",
-    "apt-get install -y libssl-dev:arm64 pkg-config"
+    "apt-get install -y libssl-dev:arm64 pkg-config",
 ]
 
 # 其他架构的镜像配置可以在需要时添加
