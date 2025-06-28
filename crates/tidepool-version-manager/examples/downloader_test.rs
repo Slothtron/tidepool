@@ -24,15 +24,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 测试获取文件大小
     let url = "https://go.dev/dl/go1.21.0.linux-amd64.tar.gz";
-    println!("📏 获取文件大小: {}", url);
-
+    println!("📏 获取文件大小: {url}");
+    #[allow(clippy::cast_precision_loss)]
     match downloader.get_file_size(url).await {
         Ok(size) => {
             println!("✅ 文件大小: {} 字节 ({:.2} MB)", size, size as f64 / 1024.0 / 1024.0);
             println!("ℹ️  实际下载测试已跳过 (避免重复下载大文件)");
         }
         Err(e) => {
-            println!("❌ 获取文件大小失败: {}", e);
+            println!("❌ 获取文件大小失败: {e}");
         }
     }
 

@@ -29,9 +29,7 @@ fn test_shell_detection_logic() {
     for (shell_path, expected_shell) in shell_paths {
         assert!(
             shell_path.contains(expected_shell),
-            "Shell 路径 {} 应该包含 {}",
-            shell_path,
-            expected_shell
+            "Shell 路径 {shell_path} 应该包含 {expected_shell}"
         );
     }
 }

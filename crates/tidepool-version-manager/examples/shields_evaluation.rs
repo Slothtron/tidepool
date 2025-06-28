@@ -4,8 +4,82 @@
 /// 1. shields crate 的实际用途和限制
 /// 2. 当前项目输出逻辑的优势
 /// 3. 功能对比和建议
+// 模拟当前项目的图标系统
+struct ProjectIcons;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+impl ProjectIcons {
+    fn should_use_ascii() -> bool {
+        // 智能检测终端能力
+        match std::env::var("GVM_ICON_STYLE").as_deref() {
+            Ok("ascii") => true,
+            Ok("unicode") => false,
+            _ => {
+                // 自动检测
+                std::env::var("TERM").unwrap_or_default().is_empty()
+                    || std::env::var("WT_SESSION").is_ok()
+                    || std::env::consts::OS == "windows"
+            }
+        }
+    }
+
+    fn success() -> &'static str {
+        if Self::should_use_ascii() {
+            "√"
+        } else {
+            "✓"
+        }
+    }
+
+    fn error() -> &'static str {
+        if Self::should_use_ascii() {
+            "×"
+        } else {
+            "✗"
+        }
+    }
+
+    fn warning() -> &'static str {
+        if Self::should_use_ascii() {
+            "!"
+        } else {
+            "⚠"
+        }
+    }
+
+    fn info() -> &'static str {
+        if Self::should_use_ascii() {
+            "i"
+        } else {
+            "ℹ"
+        }
+    }
+
+    fn hint() -> &'static str {
+        if Self::should_use_ascii() {
+            "*"
+        } else {
+            "💡"
+        }
+    }
+
+    fn package() -> &'static str {
+        if Self::should_use_ascii() {
+            ">"
+        } else {
+            "📦"
+        }
+    }
+
+    fn arrow_right() -> &'static str {
+        if Self::should_use_ascii() {
+            "->"
+        } else {
+            "➡"
+        }
+    }
+}
+
+fn main() {
     println!("🧪 shields crate 功能评估测试");
     println!("========================================");
 
@@ -27,8 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("========================================");
 
     final_recommendation();
-
-    Ok(())
+    println!("✅ 测试完成");
 }
 
 fn analyze_shields_purpose() {
@@ -56,81 +129,6 @@ fn analyze_shields_purpose() {
 fn demo_current_output_system() {
     println!("🎨 当前项目输出系统演示：");
     println!();
-
-    // 模拟当前项目的图标系统
-    struct ProjectIcons;
-
-    impl ProjectIcons {
-        fn should_use_ascii() -> bool {
-            // 智能检测终端能力
-            match std::env::var("GVM_ICON_STYLE").as_deref() {
-                Ok("ascii") => true,
-                Ok("unicode") => false,
-                _ => {
-                    // 自动检测
-                    std::env::var("TERM").unwrap_or_default().is_empty()
-                        || std::env::var("WT_SESSION").is_ok()
-                        || std::env::consts::OS == "windows"
-                }
-            }
-        }
-
-        fn success() -> &'static str {
-            if Self::should_use_ascii() {
-                "√"
-            } else {
-                "✓"
-            }
-        }
-
-        fn error() -> &'static str {
-            if Self::should_use_ascii() {
-                "×"
-            } else {
-                "✗"
-            }
-        }
-
-        fn warning() -> &'static str {
-            if Self::should_use_ascii() {
-                "!"
-            } else {
-                "⚠"
-            }
-        }
-
-        fn info() -> &'static str {
-            if Self::should_use_ascii() {
-                "i"
-            } else {
-                "ℹ"
-            }
-        }
-
-        fn hint() -> &'static str {
-            if Self::should_use_ascii() {
-                "*"
-            } else {
-                "💡"
-            }
-        }
-
-        fn package() -> &'static str {
-            if Self::should_use_ascii() {
-                ">"
-            } else {
-                "📦"
-            }
-        }
-
-        fn arrow_right() -> &'static str {
-            if Self::should_use_ascii() {
-                "->"
-            } else {
-                "➡"
-            }
-        }
-    }
 
     println!("🔸 智能图标系统特性：");
     println!("  • 自动检测终端能力");

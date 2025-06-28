@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
     use std::fs;
     use tidepool_version_manager::go::GoManager;
 
@@ -16,7 +17,7 @@ mod tests {
 
         // 创建模拟的go.exe文件
         let go_exe = bin_dir.join("go.exe");
-        fs::write(&go_exe, format!("fake go executable {}", version)).unwrap();
+        fs::write(&go_exe, format!("fake go executable {version}")).unwrap();
     }
 
     #[test]
@@ -32,7 +33,7 @@ mod tests {
 
         // 测试应该成功（在真实环境中）或者失败并返回有意义的错误消息
         match result {
-            Ok(_) => {
+            Ok(()) => {
                 // 验证junction是否创建
                 let junction_path = temp_dir.path().join("current");
                 assert!(junction_path.exists());

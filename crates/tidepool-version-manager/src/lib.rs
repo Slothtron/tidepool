@@ -106,31 +106,40 @@ pub trait VersionManager {
     /// 切换到指定版本
     ///
     /// # 参数
-    /// - `request`: 切换请求，包含版本号、根目录、配置等信息
-    ///
+    /// - `request`: 切换请求，包含版本号、根目录、配置等信息    ///
     /// # 返回
     /// - `Ok(())`: 切换成功
     /// - `Err(String)`: 切换失败，返回错误信息
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the version switch operation fails
     fn switch_to(&self, request: SwitchRequest) -> Result<(), String>;
 
-    /// 卸载指定版本
-    ///
+    /// 卸载指定版本    ///
     /// # 参数
     /// - `request`: 卸载请求，包含版本号和根目录
     ///
     /// # 返回
     /// - `Ok(())`: 卸载成功
     /// - `Err(String)`: 卸载失败，返回错误信息
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the uninstall operation fails
     fn uninstall(&self, request: UninstallRequest) -> Result<(), String>;
 
     /// 列出已安装的版本
     ///
-    /// # 参数
-    /// - `request`: 列出请求，包含根目录
+    /// # 参数    /// - `request`: 列出请求，包含根目录
     ///
     /// # 返回
     /// - `Ok(VersionList)`: 成功，返回版本列表
     /// - `Err(String)`: 失败，返回错误信息
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the list operation fails
     fn list_installed(&self, request: ListInstalledRequest) -> Result<VersionList, String>;
 
     /// 列出可用的版本
@@ -142,11 +151,14 @@ pub trait VersionManager {
 
     /// 获取当前运行时状态
     ///
-    /// # 参数
-    /// - `request`: 状态查询请求，包含可选的根目录
+    /// # 参数    /// - `request`: 状态查询请求，包含可选的根目录
     ///
     /// # 返回
     /// - `Ok(RuntimeStatus)`: 成功，返回状态信息
     /// - `Err(String)`: 失败，返回错误信息
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the status query fails
     fn status(&self, request: StatusRequest) -> Result<RuntimeStatus, String>;
 }

@@ -38,7 +38,7 @@ fn demonstrate_temp_file_logic() {
         });
 
         let temp_name = temp_path.file_name().unwrap().to_string_lossy();
-        println!("  {} → {}", original, temp_name);
+        println!("  {original} → {temp_name}");
 
         assert_eq!(temp_name, expected_temp);
     }

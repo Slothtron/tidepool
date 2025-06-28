@@ -38,18 +38,18 @@ async fn demonstrate_hash_calculation() {
         let content = "X".repeat(size_kb * 1024); // 生成指定大小的内容
         fs::write(&file_path, &content).expect("无法创建测试文件");
 
-        println!("🔸 计算 {} ({}) 的哈希值...", description, filename);
+        println!("🔸 计算 {description} ({filename}) 的哈希值...");
 
         let start_time = std::time::Instant::now();
         match manager.calculate_file_hash(&file_path).await {
             Ok(hash) => {
                 let duration = start_time.elapsed();
-                println!("  📊 文件大小: {} KB", size_kb);
+                println!("  📊 文件大小: {size_kb} KB");
                 println!("  🔑 SHA256: {}...{}", &hash[..16], &hash[hash.len() - 16..]);
-                println!("  ⏱️  计算耗时: {:?}", duration);
+                println!("  ⏱️  计算耗时: {duration:?}");
             }
             Err(e) => {
-                println!("  ❌ 计算失败: {}", e);
+                println!("  ❌ 计算失败: {e}");
             }
         }
         println!();
@@ -152,7 +152,7 @@ async fn demonstrate_security_benefits() {
     let sizes = vec![(100, "100KB 小包"), (1000, "1MB 中包"), (10000, "10MB 大包")];
 
     for (size_kb, description) in sizes {
-        let test_file = base_dir.join(format!("test_{}.bin", size_kb));
+        let test_file = base_dir.join(format!("test_{size_kb}.bin"));
         let content = vec![0u8; size_kb * 1024];
         fs::write(&test_file, &content).expect("无法创建测试文件");
 
@@ -160,7 +160,7 @@ async fn demonstrate_security_benefits() {
         let _ = manager.calculate_file_hash(&test_file).await;
         let duration = start.elapsed();
 
-        println!("  • {} 校验耗时: {:?}", description, duration);
+        println!("  • {description} 校验耗时: {duration:?}");
     }
 
     println!("\n🏆 总结:");

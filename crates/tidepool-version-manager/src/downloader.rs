@@ -48,6 +48,11 @@ pub struct ProgressReporter {
 
 impl ProgressReporter {
     /// 创建新的进度报告器
+    ///
+    /// # Panics
+    ///
+    /// Panics if the progress bar template is invalid (which should not happen with the predefined template)
+    #[must_use]
     pub fn new(total_size: u64) -> Self {
         let progress_bar = ProgressBar::new(total_size);
         progress_bar.set_style(
@@ -84,8 +89,8 @@ impl ProgressReporter {
     pub fn set_length(&self, length: u64) {
         self.progress_bar.set_length(length);
     }
-
     /// 获取长度
+    #[must_use]
     pub fn length(&self) -> Option<u64> {
         Some(self.progress_bar.length().unwrap_or(0))
     }
@@ -144,11 +149,16 @@ pub struct Downloader {
 
 impl Downloader {
     /// 创建新的下载器
+    #[must_use]
     pub fn new() -> Self {
         Self::with_config(DownloadConfig::default())
     }
-
     /// 使用指定配置创建下载器
+    ///
+    /// # Panics
+    ///
+    /// Panics if the HTTP client cannot be created (should not happen with valid configuration)
+    #[must_use]
     pub fn with_config(config: DownloadConfig) -> Self {
         let mut client_builder = Client::builder()
             .timeout(Duration::from_secs(config.timeout_seconds))
@@ -165,8 +175,15 @@ impl Downloader {
 
         Self { client, config }
     }
-
     /// 下载文件（支持分片下载和多线程）
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Network request fails
+    /// - File I/O operations fail
+    /// - Download validation fails
+    /// - Server does not support range requests when chunked download is attempted
     pub async fn download<P: AsRef<Path>>(
         &self,
         url: &str,
@@ -199,17 +216,17 @@ impl Downloader {
             && self.config.concurrent_connections > 1;
 
         if use_chunked {
-            info!("Using chunked download mode, file size: {} bytes", file_size);
+            info!("Using chunked download mode, file size: {file_size} bytes");
             self.download_chunked(url, output_path, file_size, reporter).await
         } else {
-            info!("Using single-threaded download mode, file size: {} bytes", file_size);
+            info!("Using single-threaded download mode, file size: {file_size} bytes");
             self.download_single(url, output_path, reporter).await
         }
     }
 
     /// 获取文件信息（大小和是否支持范围请求）
     async fn get_file_info(&self, url: &str) -> DownloadResult<(u64, bool)> {
-        debug!("Getting file info: {}", url);
+        debug!("Getting file info: {url}");
 
         let response = self.client.head(url).send().await?;
 
@@ -226,14 +243,12 @@ impl Downloader {
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
             .ok_or(DownloadError::FileSizeUnavailable)?;
-
         let supports_ranges = response
             .headers()
             .get("accept-ranges")
-            .map(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes")
-            .unwrap_or(false);
+            .is_some_and(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes");
 
-        debug!("File size: {} bytes, supports ranges: {}", file_size, supports_ranges);
+        debug!("File size: {file_size} bytes, supports ranges: {supports_ranges}");
         Ok((file_size, supports_ranges))
     }
 
@@ -245,7 +260,7 @@ impl Downloader {
         progress_reporter: Option<ProgressReporter>,
     ) -> DownloadResult<()> {
         for attempt in 1..=self.config.max_retries {
-            match self.try_download_single(url, &output_path, &progress_reporter).await {
+            match self.try_download_single(url, &output_path, progress_reporter.as_ref()).await {
                 Ok(()) => {
                     if let Some(ref reporter) = progress_reporter {
                         reporter.finish();
@@ -265,14 +280,15 @@ impl Downloader {
         }
         unreachable!()
     }
-
     /// 单次下载尝试
     async fn try_download_single<P: AsRef<Path>>(
         &self,
         url: &str,
         output_path: P,
-        progress_reporter: &Option<ProgressReporter>,
+        progress_reporter: Option<&ProgressReporter>,
     ) -> DownloadResult<()> {
+        use futures::stream::StreamExt;
+
         let output_path = output_path.as_ref();
 
         // 创建临时文件路径，添加 .tmp 后缀
@@ -299,9 +315,7 @@ impl Downloader {
 
         let mut file = File::create(&temp_path).await?;
         let mut downloaded: u64 = 0;
-
         let mut stream = response.bytes_stream();
-        use futures::stream::StreamExt;
 
         // 下载过程中如果出错，确保清理临时文件
         let download_result = async {
@@ -310,8 +324,7 @@ impl Downloader {
                 file.write_all(&chunk).await?;
 
                 downloaded += chunk.len() as u64;
-
-                if let Some(ref reporter) = progress_reporter {
+                if let Some(reporter) = progress_reporter {
                     reporter.update(downloaded);
                 }
             }
@@ -343,8 +356,8 @@ impl Downloader {
             }
         }
     }
-
     /// 分片下载
+    #[allow(clippy::too_many_lines)]
     async fn download_chunked<P: AsRef<Path>>(
         &self,
         url: &str,
@@ -429,15 +442,14 @@ impl Downloader {
                         chunk_end,
                         Arc::clone(&file),
                         Arc::clone(&progress_counter),
-                        &progress_reporter,
+                        progress_reporter.as_ref(),
                     )
                     .await
                     {
                         Ok(()) => return Ok(()),
                         Err(e) => {
                             warn!(
-                                "分片 {}-{} 下载尝试 {}/{} 失败: {}",
-                                chunk_start, chunk_end, attempt, max_retries, e
+                                "分片 {chunk_start}-{chunk_end} 下载尝试 {attempt}/{max_retries} 失败: {e}"
                             );
                             if attempt < max_retries {
                                 tokio::time::sleep(Duration::from_millis(retry_delay)).await;
@@ -456,9 +468,7 @@ impl Downloader {
         // 等待所有分片下载完成
         let download_result = async {
             for handle in handles {
-                handle
-                    .await
-                    .map_err(|e| DownloadError::Other(format!("任务执行错误: {}", e)))??;
+                handle.await.map_err(|e| DownloadError::Other(format!("任务执行错误: {e}")))??;
             }
             Ok::<(), DownloadError>(())
         }
@@ -496,7 +506,6 @@ impl Downloader {
             }
         }
     }
-
     /// 下载单个分片
     async fn download_chunk(
         client: &Client,
@@ -505,13 +514,13 @@ impl Downloader {
         end: u64,
         file: Arc<Mutex<File>>,
         progress_counter: Arc<Mutex<u64>>,
-        progress_reporter: &Option<ProgressReporter>,
+        progress_reporter: Option<&ProgressReporter>,
     ) -> DownloadResult<()> {
         use tokio::io::{AsyncSeekExt, AsyncWriteExt, SeekFrom};
 
-        debug!("下载分片: {}-{}", start, end);
+        debug!("下载分片: {start}-{end}");
 
-        let range_header = format!("bytes={}-{}", start, end);
+        let range_header = format!("bytes={start}-{end}");
         let response = client.get(url).header("Range", range_header).send().await?;
 
         if !response.status().is_success() && response.status().as_u16() != 206 {
@@ -535,16 +544,24 @@ impl Downloader {
         {
             let mut counter = progress_counter.lock().await;
             *counter += chunk_data.len() as u64;
-            if let Some(ref reporter) = progress_reporter {
+            if let Some(reporter) = progress_reporter {
                 reporter.update(*counter);
             }
         }
 
-        debug!("分片 {}-{} 下载完成", start, end);
+        debug!("分片 {start}-{end} 下载完成");
         Ok(())
     }
 
     /// 获取文件大小
+    /// 获取文件大小
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Network request fails
+    /// - Server does not provide content-length header
+    /// - Content-length value is invalid
     pub async fn get_file_size(&self, url: &str) -> DownloadResult<u64> {
         let (file_size, _) = self.get_file_info(url).await?;
         Ok(file_size)
