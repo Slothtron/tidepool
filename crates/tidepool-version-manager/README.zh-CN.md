@@ -1,5 +1,7 @@
 # Tidepool Version Manager
 
+> 📖 **Language**: [English](README.md) | [中文](README.zh-CN.md)
+
 [![Crates.io](https://img.shields.io/crates/v/tidepool-version-manager.svg)](https://crates.io/crates/tidepool-version-manager)
 [![Documentation](https://docs.rs/tidepool-version-manager/badge.svg)](https://docs.rs/tidepool-version-manager)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

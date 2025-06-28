@@ -30,7 +30,7 @@ tempfile = "3.5.0"
 resolver = "2"
 members = [
     "crates/tidepool-version-manager",
-    "cli/gvm",
+    "cli/tidepool-gvm",
 ]
 
 [workspace.package]

@@ -73,13 +73,13 @@ def main [
     # 构建发布版本进行最终验证
     print "🔨 构建发布版本进行验证..."
     if not $dry_run {
-        cargo build --release --package gvm
+        cargo build --release --package tidepool-gvm
         if $env.LAST_EXIT_CODE != 0 {
             print "❌ 发布版本构建失败"
             return
         }
     } else {
-        print "  将执行: cargo build --release --package gvm"
+        print "  将执行: cargo build --release --package tidepool-gvm"
     }
 
     # 提交版本更新

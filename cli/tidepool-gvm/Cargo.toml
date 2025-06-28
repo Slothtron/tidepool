@@ -1,15 +1,15 @@
 [package]
-name = "gvm"
+name = "tidepool-gvm"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Go Version Manager - Simple and fast Go version switching"
+description = "Go Version Manager CLI - Simple and fast Go version switching"
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [lib]
-name = "gvm"
+name = "tidepool_gvm"
 path = "src/lib.rs"
 
 [[bin]]

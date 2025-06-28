@@ -3,7 +3,7 @@ use std::path::PathBuf;
 #[cfg(test)]
 mod environment_display_tests {
     use super::*;
-    use gvm::ui::UI;
+    use tidepool_gvm::ui::UI;
 
     #[test]
     fn test_environment_setup_display() {

@@ -72,7 +72,7 @@ jobs:
       run: |
         cargo run --example temp_file_demo --package tidepool-version-manager
         cargo run --example hash_verification_demo --package tidepool-version-manager
-        cargo run --example env_demo --package gvm
+        cargo run --example env_demo --package tidepool-gvm
 
   security-audit:
     name: Security Audit
@@ -161,7 +161,7 @@ jobs:
         key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build release
-      run: cargo build --release --target ${{ matrix.target }} --package gvm
+      run: cargo build --release --target ${{ matrix.target }} --package tidepool-gvm
 
     - name: Test release build
       run: |
