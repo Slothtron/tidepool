@@ -115,7 +115,8 @@ pub fn uninstall(version: &str, config: &Config) -> Result<()> {
 ///
 /// # Errors
 /// Returns an error if the listing operation fails or network issues occur when fetching available versions.
-pub async fn list(show_available: bool, config: &Config) -> Result<()> {    if show_available {
+pub async fn list(show_available: bool, config: &Config) -> Result<()> {
+    if show_available {
         list_available_versions().await?;
     } else {
         list_installed_versions(config);
@@ -132,13 +133,14 @@ fn list_installed_versions(config: &Config) {
 
     match manager.list_installed(list_request) {
         Ok(version_list) => {
-            if version_list.versions.is_empty() {            if base_dir.exists() {
-                ui.warning(&Messages::no_go_versions_found());
-            } else {
-                ui.warning(&Messages::installation_directory_not_found(
-                    &base_dir.display().to_string(),
-                ));
-            }
+            if version_list.versions.is_empty() {
+                if base_dir.exists() {
+                    ui.warning(&Messages::no_go_versions_found());
+                } else {
+                    ui.warning(&Messages::installation_directory_not_found(
+                        &base_dir.display().to_string(),
+                    ));
+                }
                 ui.hint(&Messages::install_version_hint());
             } else {
                 // 获取当前使用的版本
@@ -150,7 +152,8 @@ fn list_installed_versions(config: &Config) {
                     current_version.as_deref(),
                 );
                 ui.hint(&Messages::use_version_hint());
-            }        }
+            }
+        }
         Err(e) => {
             ui.error(&Messages::error_listing_versions(&e.to_string()));
         }

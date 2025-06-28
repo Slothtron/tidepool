@@ -46,7 +46,8 @@ pub struct ProgressReporter {
     progress_bar: ProgressBar,
 }
 
-impl ProgressReporter {    /// 创建新的进度报告器
+impl ProgressReporter {
+    /// 创建新的进度报告器
     ///
     /// # Panics
     ///
@@ -87,7 +88,8 @@ impl ProgressReporter {    /// 创建新的进度报告器
     /// 设置长度
     pub fn set_length(&self, length: u64) {
         self.progress_bar.set_length(length);
-    }    /// 获取长度
+    }
+    /// 获取长度
     #[must_use]
     pub fn length(&self) -> Option<u64> {
         Some(self.progress_bar.length().unwrap_or(0))
@@ -145,11 +147,13 @@ pub struct Downloader {
     config: DownloadConfig,
 }
 
-impl Downloader {    /// 创建新的下载器
+impl Downloader {
+    /// 创建新的下载器
     #[must_use]
     pub fn new() -> Self {
         Self::with_config(DownloadConfig::default())
-    }    /// 使用指定配置创建下载器
+    }
+    /// 使用指定配置创建下载器
     ///
     /// # Panics
     ///
@@ -170,7 +174,8 @@ impl Downloader {    /// 创建新的下载器
         let client = client_builder.build().expect("Failed to create HTTP client");
 
         Self { client, config }
-    }    /// 下载文件（支持分片下载和多线程）
+    }
+    /// 下载文件（支持分片下载和多线程）
     ///
     /// # Errors
     ///
@@ -237,7 +242,8 @@ impl Downloader {    /// 创建新的下载器
             .get("content-length")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
-            .ok_or(DownloadError::FileSizeUnavailable)?;        let supports_ranges = response
+            .ok_or(DownloadError::FileSizeUnavailable)?;
+        let supports_ranges = response
             .headers()
             .get("accept-ranges")
             .is_some_and(|v| v.to_str().unwrap_or("").to_lowercase() == "bytes");
@@ -273,7 +279,8 @@ impl Downloader {    /// 创建新的下载器
             }
         }
         unreachable!()
-    }    /// 单次下载尝试
+    }
+    /// 单次下载尝试
     async fn try_download_single<P: AsRef<Path>>(
         &self,
         url: &str,
@@ -281,7 +288,7 @@ impl Downloader {    /// 创建新的下载器
         progress_reporter: Option<&ProgressReporter>,
     ) -> DownloadResult<()> {
         use futures::stream::StreamExt;
-        
+
         let output_path = output_path.as_ref();
 
         // 创建临时文件路径，添加 .tmp 后缀
@@ -307,7 +314,8 @@ impl Downloader {    /// 创建新的下载器
         }
 
         let mut file = File::create(&temp_path).await?;
-        let mut downloaded: u64 = 0;        let mut stream = response.bytes_stream();
+        let mut downloaded: u64 = 0;
+        let mut stream = response.bytes_stream();
 
         // 下载过程中如果出错，确保清理临时文件
         let download_result = async {
@@ -315,7 +323,8 @@ impl Downloader {    /// 创建新的下载器
                 let chunk = chunk_result?;
                 file.write_all(&chunk).await?;
 
-                downloaded += chunk.len() as u64;                if let Some(reporter) = progress_reporter {
+                downloaded += chunk.len() as u64;
+                if let Some(reporter) = progress_reporter {
                     reporter.update(downloaded);
                 }
             }
@@ -346,7 +355,8 @@ impl Downloader {    /// 创建新的下载器
                 Err(e)
             }
         }
-    }    /// 分片下载
+    }
+    /// 分片下载
     #[allow(clippy::too_many_lines)]
     async fn download_chunked<P: AsRef<Path>>(
         &self,
@@ -495,7 +505,8 @@ impl Downloader {    /// 创建新的下载器
                 Err(e)
             }
         }
-    }    /// 下载单个分片
+    }
+    /// 下载单个分片
     async fn download_chunk(
         client: &Client,
         url: &str,
@@ -532,7 +543,8 @@ impl Downloader {    /// 创建新的下载器
         // 更新进度
         {
             let mut counter = progress_counter.lock().await;
-            *counter += chunk_data.len() as u64;            if let Some(reporter) = progress_reporter {
+            *counter += chunk_data.len() as u64;
+            if let Some(reporter) = progress_reporter {
                 reporter.update(*counter);
             }
         }

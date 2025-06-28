@@ -63,9 +63,12 @@ async fn test_get_version_info_filename_format() {
 
     // 验证扩展名
     if cfg!(target_os = "windows") {
-        assert!(std::path::Path::new(&info.filename)
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip")), "Windows 应使用 .zip 扩展名");
+        assert!(
+            std::path::Path::new(&info.filename)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip")),
+            "Windows 应使用 .zip 扩展名"
+        );
     } else {
         assert!(info.filename.ends_with(".tar.gz"), "Unix 应使用 .tar.gz 扩展名");
     }

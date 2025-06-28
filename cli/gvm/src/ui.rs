@@ -111,11 +111,13 @@ impl UI {
     #[allow(clippy::unused_self)]
     pub fn success(&self, message: &str) {
         println!("{} {}", style(Icons::success()).green().bold(), message);
-    }    /// Print an error message
+    }
+    /// Print an error message
     #[allow(clippy::unused_self)]
     pub fn error(&self, message: &str) {
         println!("{} {}", style(Icons::error()).red().bold(), message);
-    }    /// Print a warning message
+    }
+    /// Print a warning message
     #[allow(clippy::unused_self)]
     pub fn warning(&self, message: &str) {
         println!("{} {}", style(Icons::warning()).yellow(), message);

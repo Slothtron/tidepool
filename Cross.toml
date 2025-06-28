@@ -1,13 +1,14 @@
 # Cross.toml - 跨平台编译配置
+# 使用 Podman 作为容器引擎: export CROSS_CONTAINER_ENGINE=podman
+
 [build.env]
 passthrough = ["GITHUB_TOKEN", "CARGO_REGISTRY_TOKEN", "RUST_LOG"]
 
-# macOS 目标配置
-[target.x86_64-apple-darwin]
-image = "ghcr.io/cross-rs/x86_64-apple-darwin:edge"
-
-[target.aarch64-apple-darwin]
-image = "ghcr.io/cross-rs/aarch64-apple-darwin:edge"
+# macOS 目标配置 - 需要特殊的交叉编译工具链
+# 在 Windows 上使用 Podman/Docker 交叉编译 macOS 目标较为复杂
+# 建议在 macOS 机器上直接编译，或使用 GitHub Actions
+# [target.x86_64-apple-darwin]
+# [target.aarch64-apple-darwin]
 
 # Linux ARM64 配置
 [target.aarch64-unknown-linux-gnu]

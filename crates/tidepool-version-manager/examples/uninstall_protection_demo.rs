@@ -84,7 +84,8 @@ fn demonstrate_uninstall_protection() {
     }
 
     // 验证非当前版本被删除，当前版本仍存在
-    let other_version_dir = base_dir.join(other_version);    if other_version_dir.exists() {
+    let other_version_dir = base_dir.join(other_version);
+    if other_version_dir.exists() {
         println!("❌ 错误: 非当前版本目录未被删除！");
     } else {
         println!("✅ 验证: 非当前版本目录已被正确删除");

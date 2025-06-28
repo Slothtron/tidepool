@@ -9,7 +9,8 @@ struct DemoUI;
 impl DemoUI {
     fn new() -> Self {
         Self
-    }    fn header(text: &str) {
+    }
+    fn header(text: &str) {
         println!("\n{text}");
         println!("{}", "=".repeat(text.len()));
     }

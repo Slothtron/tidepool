@@ -100,7 +100,8 @@ fn main() {
     println!("\n🎯 最终建议");
     println!("========================================");
 
-    final_recommendation();    println!("✅ 测试完成");
+    final_recommendation();
+    println!("✅ 测试完成");
 }
 
 fn analyze_shields_purpose() {
@@ -126,7 +127,8 @@ fn analyze_shields_purpose() {
 }
 
 fn demo_current_output_system() {
-    println!("🎨 当前项目输出系统演示：");    println!();
+    println!("🎨 当前项目输出系统演示：");
+    println!();
 
     println!("🔸 智能图标系统特性：");
     println!("  • 自动检测终端能力");
