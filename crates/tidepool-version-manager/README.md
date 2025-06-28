@@ -324,7 +324,6 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 
 - [GitHub Repository](https://github.com/Slothtron/tidepool)
 - [Issue Tracker](https://github.com/Slothtron/tidepool/issues)
-- [Changelog](../../CHANGELOG.md)
 - [Releases](https://github.com/Slothtron/tidepool/releases)
 
 ---

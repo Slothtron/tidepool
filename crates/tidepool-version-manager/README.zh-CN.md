@@ -324,7 +324,6 @@ cargo clippy --all-targets --all-features
 
 - [GitHub 仓库](https://github.com/Slothtron/tidepool)
 - [问题跟踪](https://github.com/Slothtron/tidepool/issues)
-- [变更日志](../../CHANGELOG.md)
 - [发布页面](https://github.com/Slothtron/tidepool/releases)
 
 ---
