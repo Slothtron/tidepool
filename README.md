@@ -33,20 +33,32 @@ sudo mv gvm /usr/local/bin/
 ### Basic Usage
 
 ```bash
-# Install Go version
+# Install and switch to a Go version
 gvm install 1.21.3
 
-# Switch Go version
-gvm use 1.21.3
+# Force reinstall if version already exists
+gvm install 1.21.3 --force
 
-# List installed versions
+# List installed Go versions
 gvm list
+
+# Show available versions (not installed)
+gvm list --available
+
+# Show current Go version and environment
+gvm status
+
+# Show detailed information about a Go version
+gvm info 1.21.3
+
+# Uninstall a Go version
+gvm uninstall 1.21.3
 
 # Show help
 gvm --help
 ```
 
-## � Project Structure
+## 📁 Project Structure
 
 ```
 tidepool/
