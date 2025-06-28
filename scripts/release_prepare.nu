@@ -5,7 +5,7 @@
 
 def main [version?: string] {
     print "🚀 准备发布 Tidepool Version Manager (gvm)..."
-    
+
     if ($version | is-empty) {
         let current_version = (open Cargo.toml | get workspace.package.version)
         print $"📦 当前版本: ($current_version)"
@@ -13,10 +13,10 @@ def main [version?: string] {
         print $"📦 目标版本: ($version)"
         # 这里可以添加版本更新逻辑
     }
-    
+
     print ""
     print "🔍 执行发布前检查..."
-    
+
     # 1. 代码格式化
     print "🎨 格式化代码..."
     try {
@@ -27,7 +27,7 @@ def main [version?: string] {
         cargo fmt
         print "✅ 代码已格式化"
     }
-    
+
     # 2. 编译检查
     print "🔧 检查编译..."
     try {
@@ -37,7 +37,7 @@ def main [version?: string] {
         print "❌ 编译检查失败"
         exit 1
     }
-    
+
     # 3. Clippy 检查
     print "🔍 运行 Clippy 检查..."
     try {
@@ -46,9 +46,7 @@ def main [version?: string] {
     } catch {
         print "❌ Clippy 检查失败，请修复警告"
         exit 1
-    }
-    
-    # 4. 运行测试
+    }    # 4. 运行测试
     print "🧪 运行测试..."
     try {
         cargo test --workspace
@@ -57,23 +55,23 @@ def main [version?: string] {
         print "❌ 测试失败"
         exit 1
     }
-    
+
     # 5. 构建发布版本
     print "📦 构建发布版本..."
     try {
-        cargo build --release --package gvm
+        cargo build --release --package tidepool-gvm
         print "✅ 发布版本构建成功"
     } catch {
         print "❌ 发布版本构建失败"
         exit 1
     }    # 6. 验证二进制文件
     print "🔍 验证二进制文件..."
-    let binary_path = if (sys host).name == "windows" { 
-        "target/release/gvm.exe" 
-    } else { 
-        "target/release/gvm" 
+    let binary_path = if (sys host | get name) == "Windows" {
+        "target/release/gvm.exe"
+    } else {
+        "target/release/gvm"
     }
-    
+
     if ($binary_path | path exists) {
         let version_output = (do { ^$binary_path --version } | complete)
         if $version_output.exit_code == 0 {
@@ -83,10 +81,10 @@ def main [version?: string] {
             exit 1
         }
     } else {
-        print "❌ 找不到二进制文件"
+        print $"❌ 找不到二进制文件: ($binary_path)"
         exit 1
     }
-    
+
     print ""
     print "🎉 发布前检查全部通过！"
     print ""
