@@ -33,22 +33,34 @@ sudo mv gvm /usr/local/bin/
 ### 基本用法
 
 ```bash
-# 安装 Go 版本
+# 安装并切换到指定 Go 版本
 gvm install 1.21.3
 
-# 切换 Go 版本
-gvm use 1.21.3
+# 强制重新安装（如果版本已存在）
+gvm install 1.21.3 --force
 
-# 列出已安装版本
+# 列出已安装的 Go 版本
 gvm list
 
-# 显示帮助
+# 显示可用版本（未安装的）
+gvm list --available
+
+# 显示当前 Go 版本和环境信息
+gvm status
+
+# 显示指定 Go 版本的详细信息
+gvm info 1.21.3
+
+# 卸载指定 Go 版本
+gvm uninstall 1.21.3
+
+# 显示帮助信息
 gvm --help
 ```
 
 ## 核心特性
 
-## � 项目结构
+## 📁 项目结构
 
 ```
 tidepool/

@@ -33,51 +33,63 @@ cargo build --release --package tidepool-gvm
 ### 基本命令
 
 ```bash
-# 安装 Go 版本
+# 安装并切换到指定 Go 版本
 gvm install 1.21.3
 
-# 切换到指定 Go 版本
-gvm use 1.21.3
+# 强制重新安装（如果版本已存在）
+gvm install 1.21.3 --force
 
-# 列出已安装版本
+# 列出已安装的 Go 版本
 gvm list
 
 # 列出可下载的版本
 gvm list --available
 
-# 显示当前状态
+# 显示当前 Go 版本和环境信息
 gvm status
 
-# 显示版本信息
+# 显示指定版本的详细信息
 gvm info 1.21.3
 
-# 卸载版本
+# 卸载指定版本
 gvm uninstall 1.20.5
 
-# 更新可用版本缓存
-gvm update
-
-# 显示配置
-gvm config
-
-# 显示帮助
+# 显示帮助信息
 gvm --help
 ```
 
-### 高级选项
+### 命令详情
 
+#### 安装命令
 ```bash
-# 强制安装（覆盖现有版本）
-gvm install 1.21.3 --force
+# 基本安装
+gvm install <VERSION>
 
-# 全局设置（在终端间持久化）
-gvm use 1.21.3 --global
+# 强制重新安装（覆盖现有版本）
+gvm install <VERSION> --force
+gvm install <VERSION> -f
+```
 
-# 自定义安装目录
-gvm install 1.21.3 --install-dir /opt/go-versions
+#### 列表命令
+```bash
+# 列出已安装版本
+gvm list
 
-# 详细输出
-gvm install 1.21.3 --verbose
+# 显示可用版本（未安装的）
+gvm list --available
+gvm list -a
+```
+
+#### 其他命令
+```bash
+# 显示当前 Go 版本和环境信息
+gvm status
+
+# 显示版本的详细信息
+gvm info <VERSION>
+
+# 卸载指定版本
+gvm uninstall <VERSION>
 ```
 
 ## 特性

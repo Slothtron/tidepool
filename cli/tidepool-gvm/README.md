@@ -33,51 +33,63 @@ The binary will be available at `target/release/gvm` (or `gvm.exe` on Windows).
 ### Basic Commands
 
 ```bash
-# Install a Go version
+# Install and switch to a Go version
 gvm install 1.21.3
 
-# Switch to a Go version
-gvm use 1.21.3
+# Force reinstall if version already exists
+gvm install 1.21.3 --force
 
-# List installed versions
+# List installed Go versions
 gvm list
 
 # List available versions for download
 gvm list --available
 
-# Show current status
+# Show current Go version and environment
 gvm status
 
-# Show version information
+# Show detailed information about a Go version
 gvm info 1.21.3
 
-# Uninstall a version
+# Uninstall a Go version
 gvm uninstall 1.20.5
-
-# Update available versions cache
-gvm update
-
-# Show configuration
-gvm config
 
 # Show help
 gvm --help
 ```
 
-### Advanced Options
+### Command Details
 
+#### Install Command
 ```bash
-# Force installation (overwrite existing)
-gvm install 1.21.3 --force
+# Basic installation
+gvm install <VERSION>
 
-# Global setting (persistent across terminals)
-gvm use 1.21.3 --global
+# Force reinstall (overwrite existing)
+gvm install <VERSION> --force
+gvm install <VERSION> -f
+```
 
-# Custom installation directory
-gvm install 1.21.3 --install-dir /opt/go-versions
+#### List Command
+```bash
+# List installed versions
+gvm list
 
-# Verbose output
-gvm install 1.21.3 --verbose
+# Show available versions (not installed)
+gvm list --available
+gvm list -a
+```
+
+#### Other Commands
+```bash
+# Show current Go version and environment
+gvm status
+
+# Show detailed information about a version
+gvm info <VERSION>
+
+# Uninstall a version
+gvm uninstall <VERSION>
 ```
 
 ## Features
