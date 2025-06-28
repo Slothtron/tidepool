@@ -63,7 +63,9 @@ jobs:
           path: target
           key: ${{ runner.os }}-${{ matrix.target }}-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-target-      - name: Build release binary
+            ${{ runner.os }}-${{ matrix.target }}-target-
+
+      - name: Build release binary
         run: |
           cargo build --release --target ${{ matrix.target }} --package tidepool-gvm
         shell: bash
