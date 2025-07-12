@@ -64,7 +64,7 @@
 
 本次更新严格遵循项目的质量标准：
 - ✅ 零编译错误
-- ✅ 零编译警告  
+- ✅ 零编译警告
 - ✅ 零 Clippy 警告
 - ✅ 所有测试通过
 - ✅ 代码已格式化
@@ -94,6 +94,6 @@ if junction::exists(&junction_path)? {
 
 ---
 
-**分支**: `feat/junction-crate-integration`  
-**状态**: ✅ 就绪等待合并  
+**分支**: `feat/junction-crate-integration`
+**状态**: ✅ 就绪等待合并
 **测试**: ✅ 全部通过

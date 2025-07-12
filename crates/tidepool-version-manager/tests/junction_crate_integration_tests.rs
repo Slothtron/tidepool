@@ -11,37 +11,37 @@ mod integration_tests {
     fn test_junction_crate_integration() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();
-        
+
         // 创建测试版本目录
         let version = "1.21.5";
         let version_path = temp_dir.path().join(version);
         let bin_path = version_path.join("bin");
         fs::create_dir_all(&bin_path).unwrap();
-        
+
         // 创建模拟的 go.exe 文件
         fs::write(bin_path.join("go.exe"), b"fake go binary").unwrap();
-        
+
         // 测试创建 junction
         match manager.switch_version(version, temp_dir.path()) {
             Ok(()) => {
                 let junction_path = temp_dir.path().join("current");
-                
+
                 // 验证 junction 是否存在
                 assert!(junction_path.exists());
-                
+
                 // 使用 junction crate 验证
                 assert!(junction::exists(&junction_path).unwrap_or(false));
-                
+
                 // 验证 junction 目标
                 if let Ok(target) = junction::get_target(&junction_path) {
                     assert_eq!(target, version_path);
                 }
-                
+
                 println!("✅ Junction crate 集成测试成功");
             }
             Err(e) => {
                 // 在测试环境中，权限问题是可以接受的
-                if e.contains("Failed to create junction") 
+                if e.contains("Failed to create junction")
                     || e.contains("Access is denied")
                     || e.contains("permission") {
                     println!("⚠️ 测试跳过：权限不足 - {e}");
