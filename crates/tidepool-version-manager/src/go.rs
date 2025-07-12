@@ -92,7 +92,7 @@ impl GoManager {
             self.switch_version_unix(version, base_dir)
         }
     }
-    /// Windows Junction Point 版本切换实现（不需要管理员权限）
+    /// Windows Junction Point 版本切换实现（使用第三方 junction crate）
     #[cfg(target_os = "windows")]
     fn switch_version_windows(version: &str, base_dir: &Path) -> Result<(), String> {
         let version_path = base_dir.join(version);
@@ -114,27 +114,20 @@ impl GoManager {
         debug!("Creating junction point for Go version {version}");
 
         // 删除现有的junction或目录
-        if junction_path.exists() && junction_path.is_dir() {
-            std::fs::remove_dir_all(&junction_path)
-                .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
+        if junction_path.exists() {
+            // 检查是否是 junction 点
+            if junction::exists(&junction_path).unwrap_or(false) {
+                junction::delete(&junction_path)
+                    .map_err(|e| format!("Failed to remove existing junction: {e}"))?;
+            } else if junction_path.is_dir() {
+                std::fs::remove_dir_all(&junction_path)
+                    .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
+            }
         }
 
-        // 使用mklink命令创建junction (不需要管理员权限)
-        let output = std::process::Command::new("cmd")
-            .args([
-                "/C",
-                "mklink",
-                "/J",
-                &junction_path.to_string_lossy(),
-                &version_path.to_string_lossy(),
-            ])
-            .output()
-            .map_err(|e| format!("Failed to execute mklink: {e}"))?;
-
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to create junction: {error_msg}"));
-        }
+        // 使用 junction crate 创建 junction point
+        junction::create(&junction_path, &version_path)
+            .map_err(|e| format!("Failed to create junction: {e}"))?;
 
         info!("Successfully created junction point for Go version {version}");
 
@@ -147,6 +140,7 @@ impl GoManager {
         if !junction_go_exe.exists() {
             return Err("Junction target is invalid: missing go.exe".to_string());
         }
+
         debug!("Successfully created junction point for Go version {version}");
         debug!("Environment variables updated for Go version {version}");
         Ok(())
@@ -239,6 +233,14 @@ impl GoManager {
             return None;
         }
 
+        #[cfg(target_os = "windows")]
+        {
+            // 首先尝试使用 junction crate 检查是否为 junction point
+            if junction::exists(&link_path).unwrap_or(false) {
+                return junction::get_target(&link_path).ok();
+            }
+        }
+
         // 检查是否为链接（适用于Windows junction和Unix symlink）
         if link_path.is_symlink() {
             // 使用标准库读取链接目标
@@ -272,15 +274,27 @@ impl GoManager {
             return "No symlink found".to_string();
         }
 
+        #[cfg(target_os = "windows")]
+        {
+            // 优先检查是否为 junction point
+            if junction::exists(&link_path).unwrap_or(false) {
+                if let Ok(target) = junction::get_target(&link_path) {
+                    return format!("Junction: {} -> {}", link_path.display(), target.display());
+                } else {
+                    return "Junction exists but target unknown".to_string();
+                }
+            }
+        }
+
         if let Some(target) = self.get_link_target(base_dir) {
             #[cfg(target_os = "windows")]
-            return format!("Junction: {} -> {}", link_path.display(), target.display());
+            return format!("Junction/Link: {} -> {}", link_path.display(), target.display());
             #[cfg(not(target_os = "windows"))]
             return format!("Symlink: {} -> {}", link_path.display(), target.display());
         }
 
         #[cfg(target_os = "windows")]
-        return "Junction exists but target unknown".to_string();
+        return "Junction/Link exists but target unknown".to_string();
         #[cfg(not(target_os = "windows"))]
         return "Symlink exists but target unknown".to_string();
     }

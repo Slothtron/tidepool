@@ -28,13 +28,24 @@ fn main() {
         println!("  当前版本: {current}");
     } else {
         println!("  当前版本: 未设置");
-    }
-
-    // 显示junction信息
+    } // 显示junction信息
     #[cfg(windows)]
     {
         let junction_info = manager.get_symlink_info(&base_dir);
         println!("  Junction状态: {junction_info}");
+
+        // 如果使用第三方 junction crate，提供更详细的信息
+        let junction_path = base_dir.join("current");
+        if junction_path.exists() {
+            if junction::exists(&junction_path).unwrap_or(false) {
+                println!("  Junction验证: 使用第三方 junction crate 确认为 Junction Point");
+                if let Ok(target) = junction::get_target(&junction_path) {
+                    println!("  Junction目标: {}", target.display());
+                }
+            } else {
+                println!("  Junction验证: 不是 Junction Point");
+            }
+        }
     }
 
     // 显示环境变量

@@ -19,7 +19,6 @@ mod tests {
         let go_exe = bin_dir.join("go.exe");
         fs::write(&go_exe, format!("fake go executable {version}")).unwrap();
     }
-
     #[test]
     #[cfg(windows)]
     fn test_junction_point_method() {
@@ -37,12 +36,21 @@ mod tests {
                 // 验证junction是否创建
                 let junction_path = temp_dir.path().join("current");
                 assert!(junction_path.exists());
+
+                // 使用 junction crate 验证 junction point
+                assert!(junction::exists(&junction_path).unwrap_or(false));
+
+                // 验证 junction 目标
+                if let Ok(target) = junction::get_target(&junction_path) {
+                    assert_eq!(target, temp_dir.path().join(version));
+                }
             }
             Err(e) => {
-                // 在测试环境中，mklink可能不可用，这是可以接受的
+                // 在测试环境中，junction 创建可能失败，这是可以接受的
                 assert!(
                     e.contains("Failed to create junction")
-                        || e.contains("Failed to execute mklink")
+                        || e.contains("Access is denied")
+                        || e.contains("permission")
                 );
             }
         }

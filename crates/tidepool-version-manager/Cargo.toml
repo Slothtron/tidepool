@@ -24,6 +24,7 @@ serde = { workspace = true }
 url = { workspace = true }
 # SHA256 哈希计算
 sha2 = "0.10"
+junction = "1.2.0"
 
 # Unix-specific dependencies
 [target.'cfg(not(target_os = "windows"))'.dependencies]
