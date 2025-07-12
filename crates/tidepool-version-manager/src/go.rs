@@ -4,6 +4,9 @@ use crate::{
     InstallRequest, ListInstalledRequest, RuntimeStatus, StatusRequest, SwitchRequest,
     UninstallRequest, VersionInfo, VersionList, VersionManager,
 };
+
+#[cfg(target_os = "windows")]
+use crate::junction_utils::{safe_create_junction, safe_remove_junction_or_dir};
 use log::{debug, info, warn};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -113,20 +116,11 @@ impl GoManager {
 
         debug!("Creating junction point for Go version {version}");
 
-        // 删除现有的junction或目录
-        if junction_path.exists() {
-            // 检查是否是 junction 点
-            if junction::exists(&junction_path).unwrap_or(false) {
-                junction::delete(&junction_path)
-                    .map_err(|e| format!("Failed to remove existing junction: {e}"))?;
-            } else if junction_path.is_dir() {
-                std::fs::remove_dir_all(&junction_path)
-                    .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
-            }
-        }
+        // 使用工具函数安全删除现有 junction 并创建新的
+        safe_remove_junction_or_dir(&junction_path)
+            .map_err(|e| format!("Failed to remove existing junction/directory: {e}"))?;
 
-        // 使用 junction crate 创建 junction point
-        junction::create(&junction_path, &version_path)
+        safe_create_junction(&junction_path, &version_path)
             .map_err(|e| format!("Failed to create junction: {e}"))?;
 
         info!("Successfully created junction point for Go version {version}");

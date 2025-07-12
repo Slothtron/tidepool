@@ -43,7 +43,8 @@ mod integration_tests {
                 // 在测试环境中，权限问题是可以接受的
                 if e.contains("Failed to create junction")
                     || e.contains("Access is denied")
-                    || e.contains("permission") {
+                    || e.contains("permission")
+                {
                     println!("⚠️ 测试跳过：权限不足 - {e}");
                 } else {
                     panic!("未预期的错误: {e}");

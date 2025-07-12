@@ -4,6 +4,10 @@ pub mod go;
 // 内部下载器模块（原 tidepool-downloader）
 pub mod downloader;
 
+// Windows Junction 工具模块
+#[cfg(target_os = "windows")]
+pub mod junction_utils;
+
 // 重新导出 GoVersionInfo
 pub use go::GoVersionInfo;
 
