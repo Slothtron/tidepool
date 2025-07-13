@@ -1,3 +1,4 @@
+
 [package]
 name = "tidepool-gvm"
 version.workspace = true
@@ -15,6 +16,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "gvm"
 path = "src/main.rs"
+
 
 [dependencies]
 tidepool-version-manager = { version = "0.1.4", path = "../../crates/tidepool-version-manager" }

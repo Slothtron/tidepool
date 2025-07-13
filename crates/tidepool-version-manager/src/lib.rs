@@ -4,6 +4,9 @@ pub mod go;
 // 内部下载器模块（原 tidepool-downloader）
 pub mod downloader;
 
+// 跨平台符号链接统一接口模块
+pub mod symlink;
+
 // 重新导出 GoVersionInfo
 pub use go::GoVersionInfo;
 

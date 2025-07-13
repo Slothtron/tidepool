@@ -27,16 +27,19 @@
 
 ### 🛡️ Security Features
 - **File Hash Verification** - Automatic verification of downloaded file integrity
-- **Permission Security** - Windows Junction links without administrator privileges
+- **Permission Security** - Cross-platform symlinks without administrator privileges
 - **Safe Uninstallation** - Protection mechanisms to prevent accidental system file deletion
 
 ## 📦 Installation
 
 Add the following to your `Cargo.toml`:
 
-```toml
 [dependencies]
 tidepool-version-manager = "0.1.3"
+```
+```toml
+[dependencies]
+tidepool-version-manager = "0.1.4"
 ```
 
 ## 🚀 Quick Start
@@ -45,9 +48,9 @@ tidepool-version-manager = "0.1.3"
 
 ```rust
 use tidepool_version_manager::{
-    go::GoManager, 
-    VersionManager, 
-    InstallRequest, 
+    go::GoManager,
+    VersionManager,
+    InstallRequest,
     SwitchRequest
 };
 use std::path::PathBuf;
@@ -56,7 +59,7 @@ use std::path::PathBuf;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create Go version manager
     let go_manager = GoManager::new();
-    
+
     // Install Go 1.21.0
     let install_request = InstallRequest {
         version: "1.21.0".to_string(),
@@ -64,10 +67,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         download_dir: PathBuf::from("/tmp/go-downloads"),
         force: false,
     };
-    
+
     let version_info = go_manager.install(install_request).await?;
     println!("✅ Installed Go {}", version_info.version);
-    
+
     // Switch to that version
     let switch_request = SwitchRequest {
         version: "1.21.0".to_string(),
@@ -75,10 +78,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         global: true,
         force: false,
     };
-    
+
     go_manager.switch_to(switch_request)?;
     println!("🔄 Switched to Go 1.21.0");
-    
+
     Ok(())
 }
 ```
@@ -91,15 +94,15 @@ use tidepool_version_manager::{go::GoManager, VersionManager};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let go_manager = GoManager::new();
-    
+
     // Get available versions list
     let available_versions = go_manager.list_available().await?;
     println!("📋 Available Go versions ({} total):", available_versions.total_count);
-    
+
     for version in available_versions.versions.iter().take(10) {
         println!("   - {}", version);
     }
-    
+
     Ok(())
 }
 ```
@@ -112,20 +115,20 @@ use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let go_manager = GoManager::new();
-    
+
     let status_request = StatusRequest {
         base_dir: Some(PathBuf::from("/usr/local/go-versions")),
     };
-    
+
     let status = go_manager.status(status_request)?;
-    
+
     if let Some(version) = status.current_version {
         println!("🎯 Current Go version: {}", version);
-        
+
         if let Some(path) = status.install_path {
             println!("📁 Installation path: {}", path.display());
         }
-        
+
         println!("🌍 Environment variables:");
         for (key, value) in status.environment_vars {
             println!("   {}={}", key, value);
@@ -133,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         println!("❌ No installed Go version detected");
     }
-    
+
     Ok(())
 }
 ```
@@ -156,16 +159,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         min_chunk_size: 10 * 1024 * 1024, // Minimum chunk size (10MB)
         ..Default::default()
     };
-    
+
     let downloader = Downloader::with_config(config);
-    
+
     // Use custom downloader for downloads
     let url = "https://go.dev/dl/go1.21.0.linux-amd64.tar.gz";
     let output_path = "/tmp/go1.21.0.linux-amd64.tar.gz";
-    
+
     downloader.download(url, output_path, None).await?;
     println!("✅ Download completed: {}", output_path);
-    
+
     Ok(())
 }
 ```
@@ -186,11 +189,11 @@ impl ProgressReporter for MyProgressReporter {
             println!("📊 Downloaded: {} bytes", downloaded);
         }
     }
-    
+
     fn report_error(&self, error: &str) {
         eprintln!("❌ Download error: {}", error);
     }
-    
+
     fn report_completion(&self) {
         println!("✅ Download completed!");
     }
@@ -200,12 +203,12 @@ impl ProgressReporter for MyProgressReporter {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let downloader = Downloader::new();
     let progress_reporter = MyProgressReporter;
-    
+
     let url = "https://go.dev/dl/go1.21.0.linux-amd64.tar.gz";
     let output_path = "/tmp/go1.21.0.linux-amd64.tar.gz";
-    
+
     downloader.download(url, output_path, Some(&progress_reporter)).await?;
-    
+
     Ok(())
 }
 ```
@@ -229,7 +232,7 @@ tidepool-version-manager/
 - **`VersionManager` Trait** - Unified version management interface, extensible for other runtimes
 - **`GoManager`** - Concrete implementation for Go language version management
 - **`Downloader`** - High-performance async downloader with resume and progress reporting
-- **Cross-platform Support** - Unified abstraction for Windows Junctions and Unix symbolic links
+- **Cross-platform Support** - Unified abstraction for cross-platform symlinks
 
 ## 🧪 Running Examples
 
@@ -242,8 +245,7 @@ cargo run --example downloader_test
 # Hash verification demo
 cargo run --example hash_verification_demo
 
-# Windows Junction demo (Windows only)
-cargo run --example junction_demo
+
 
 # Temporary file handling demo
 cargo run --example temp_file_demo
@@ -278,7 +280,7 @@ cargo test --test integration_tests
 ## 🚧 Future Plans
 
 - [ ] **Python Version Management** - Support for Python/pyenv compatibility
-- [ ] **Node.js Version Management** - Support for Node.js/nvm compatibility  
+- [ ] **Node.js Version Management** - Support for Node.js/nvm compatibility
 - [ ] **Configuration File Support** - Project-level version configuration
 - [ ] **Plugin System** - Custom version management extensions
 - [ ] **Mirror Source Support** - Accelerated downloads via domestic mirrors

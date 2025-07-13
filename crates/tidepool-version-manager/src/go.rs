@@ -1,6 +1,7 @@
 // Go version management module
 use crate::{
     downloader::{Downloader, ProgressReporter},
+    symlink::{get_symlink_target, is_symlink, remove_symlink_dir, symlink_dir},
     InstallRequest, ListInstalledRequest, RuntimeStatus, StatusRequest, SwitchRequest,
     UninstallRequest, VersionInfo, VersionList, VersionManager,
 };
@@ -72,7 +73,7 @@ impl GoManager {
             self.extract_tar_gz(archive_path, extract_to)
         }
     }
-    /// 跨平台版本切换实现（Windows 使用 Junction，Unix 使用符号链接）
+    /// 跨平台版本切换实现（统一使用 symlink 模块）
     ///
     /// # Errors
     ///
@@ -82,88 +83,19 @@ impl GoManager {
     /// - Unable to create new version link
     /// - System file operations fail
     pub fn switch_version(&self, version: &str, base_dir: &Path) -> Result<(), String> {
-        #[cfg(target_os = "windows")]
-        {
-            Self::switch_version_windows(version, base_dir)
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            self.switch_version_unix(version, base_dir)
-        }
-    }
-    /// Windows Junction Point 版本切换实现（不需要管理员权限）
-    #[cfg(target_os = "windows")]
-    fn switch_version_windows(version: &str, base_dir: &Path) -> Result<(), String> {
         let version_path = base_dir.join(version);
-        let junction_path = base_dir.join("current");
+        let current_path = base_dir.join("current");
 
         if !version_path.exists() {
             return Err(format!("Go version {version} is not installed"));
         }
 
         // 验证Go安装的完整性
-        let go_exe = version_path.join("bin").join("go.exe");
-        if !go_exe.exists() {
-            return Err(format!(
-                "Invalid Go installation: missing go.exe in {}",
-                version_path.display()
-            ));
-        }
-
-        debug!("Creating junction point for Go version {version}");
-
-        // 删除现有的junction或目录
-        if junction_path.exists() && junction_path.is_dir() {
-            std::fs::remove_dir_all(&junction_path)
-                .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
-        }
-
-        // 使用mklink命令创建junction (不需要管理员权限)
-        let output = std::process::Command::new("cmd")
-            .args([
-                "/C",
-                "mklink",
-                "/J",
-                &junction_path.to_string_lossy(),
-                &version_path.to_string_lossy(),
-            ])
-            .output()
-            .map_err(|e| format!("Failed to execute mklink: {e}"))?;
-
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to create junction: {error_msg}"));
-        }
-
-        info!("Successfully created junction point for Go version {version}");
-
-        // 验证junction是否正确创建
-        if !junction_path.exists() {
-            return Err("Junction does not exist after creation".to_string());
-        }
-
-        let junction_go_exe = junction_path.join("bin").join("go.exe");
-        if !junction_go_exe.exists() {
-            return Err("Junction target is invalid: missing go.exe".to_string());
-        }
-        debug!("Successfully created junction point for Go version {version}");
-        debug!("Environment variables updated for Go version {version}");
-        Ok(())
-    }
-
-    /// Unix Symlink 版本切换实现（使用符号链接）
-    #[cfg(not(target_os = "windows"))]
-    fn switch_version_unix(&self, version: &str, base_dir: &Path) -> Result<(), String> {
-        let version_path = base_dir.join(version);
-        let current_path = base_dir.join("current");
-
-        if !version_path.exists() {
-            return Err(format!("Go version {} is not installed", version));
-        }
-
-        // 验证Go安装的完整性
+        #[cfg(target_os = "windows")]
+        let go_binary = version_path.join("bin").join("go.exe");
+        #[cfg(not(target_os = "windows"))]
         let go_binary = version_path.join("bin").join("go");
+
         if !go_binary.exists() {
             return Err(format!(
                 "Invalid Go installation: missing go binary in {}",
@@ -171,45 +103,45 @@ impl GoManager {
             ));
         }
 
-        debug!("Creating symlink for Go version {}", version);
+        debug!("Creating link for Go version {version}");
 
-        // 删除现有的符号链接或目录
+        // 如果链接路径已存在，先删除
         if current_path.exists() {
-            if current_path.is_symlink() {
-                std::fs::remove_file(&current_path)
-                    .map_err(|e| format!("Failed to remove existing symlink: {}", e))?;
+            debug!("Current link exists, removing first");
+            if is_symlink(&current_path) {
+                remove_symlink_dir(&current_path)
+                    .map_err(|e| format!("Failed to remove existing link: {e}"))?;
             } else if current_path.is_dir() {
                 std::fs::remove_dir_all(&current_path)
-                    .map_err(|e| format!("Failed to remove existing directory: {}", e))?;
+                    .map_err(|e| format!("Failed to remove existing directory: {e}"))?;
+            } else {
+                std::fs::remove_file(&current_path)
+                    .map_err(|e| format!("Failed to remove existing file: {e}"))?;
             }
         }
 
-        // 创建符号链接
-        #[cfg(not(target_os = "windows"))]
-        {
-            std::os::unix::fs::symlink(&version_path, &current_path)
-                .map_err(|e| format!("Failed to create symlink: {}", e))?;
-        }
+        // 使用基础的符号链接接口
+        symlink_dir(&version_path, &current_path)
+            .map_err(|e| format!("Failed to create link: {e}"))?;
 
-        info!("Successfully created symlink for Go version {}", version);
+        info!("Successfully created link for Go version {version}");
 
-        // 验证符号链接是否正确创建
+        // 验证链接是否正确创建
         if !current_path.exists() {
-            return Err("Symlink does not exist after creation".to_string());
+            return Err("Link does not exist after creation".to_string());
         }
 
-        let current_go_binary = current_path.join("bin").join("go");
-        if !current_go_binary.exists() {
-            return Err("Symlink target is invalid: missing go binary".to_string());
+        if !go_binary.exists() {
+            return Err("Link target is invalid: missing go binary".to_string());
         }
 
-        debug!("Successfully created symlink for Go version {}", version);
+        debug!("Successfully created link for Go version {version}");
         Ok(())
     }
-    /// 获取当前活跃的Go版本
+    /// 获取当前活跃的Go版本（通过符号链接）
     #[must_use]
     pub fn get_current_version(&self, base_dir: &Path) -> Option<String> {
-        // 首先尝试从链接获取（跨平台支持junction和symlink）
+        // 首先尝试从符号链接获取（跨平台支持）
         if let Some(target) = self.get_link_target(base_dir) {
             return target
                 .file_name()
@@ -230,59 +162,33 @@ impl GoManager {
 
         None
     }
-    /// 获取链接指向的目标路径（跨平台）
+    /// 获取符号链接指向的目标路径（跨平台）
     #[must_use]
     pub fn get_link_target(&self, base_dir: &Path) -> Option<PathBuf> {
         let link_path = base_dir.join("current");
-
-        if !link_path.exists() {
-            return None;
-        }
-
-        // 检查是否为链接（适用于Windows junction和Unix symlink）
-        if link_path.is_symlink() {
-            // 使用标准库读取链接目标
-            if let Ok(target) = std::fs::read_link(&link_path) {
-                return Some(target);
-            }
-        }
-
-        None
+        get_symlink_target(&link_path)
     }
-    /// 获取junction指向的目标路径（Windows特定，向后兼容）
-    #[cfg(target_os = "windows")]
-    #[must_use]
-    pub fn get_junction_target(&self, base_dir: &Path) -> Option<PathBuf> {
-        self.get_link_target(base_dir)
-    }
+
     /// 获取符号链接指向的目标路径（跨平台）
     #[must_use]
     pub fn get_symlink_target(&self, base_dir: &Path) -> Option<PathBuf> {
         self.get_link_target(base_dir)
     }
+
     /// 获取链接状态信息（跨平台）
     #[must_use]
     pub fn get_symlink_info(&self, base_dir: &Path) -> String {
         let link_path = base_dir.join("current");
 
         if !link_path.exists() {
-            #[cfg(target_os = "windows")]
-            return "No junction found".to_string();
-            #[cfg(not(target_os = "windows"))]
             return "No symlink found".to_string();
         }
 
-        if let Some(target) = self.get_link_target(base_dir) {
-            #[cfg(target_os = "windows")]
-            return format!("Junction: {} -> {}", link_path.display(), target.display());
-            #[cfg(not(target_os = "windows"))]
+        if let Some(target) = get_symlink_target(&link_path) {
             return format!("Symlink: {} -> {}", link_path.display(), target.display());
         }
 
-        #[cfg(target_os = "windows")]
-        return "Junction exists but target unknown".to_string();
-        #[cfg(not(target_os = "windows"))]
-        return "Symlink exists but target unknown".to_string();
+        "Symlink exists but target unknown".to_string()
     }
 
     /// 解压 ZIP 文件 (Windows)
@@ -795,7 +701,7 @@ impl VersionManager for GoManager {
     ///
     /// 扫描基础目录中的所有子目录，返回包含有效Go安装的版本目录列表。
     /// 自动排除：
-    /// - `current` 目录（junction point）
+    /// - `current` 目录（符号链接）
     /// - 没有 `bin/go` 或 `bin/go.exe` 的目录
     /// - 非目录文件
     ///
@@ -813,7 +719,7 @@ impl VersionManager for GoManager {
                 for entry in entries.flatten() {
                     let name = entry.file_name().to_string_lossy().to_string();
 
-                    // 跳过current目录（junction point）
+                    // 跳过current目录（符号链接）
                     if name == "current" {
                         continue;
                     }
