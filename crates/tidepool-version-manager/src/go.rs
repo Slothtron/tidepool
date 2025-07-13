@@ -191,14 +191,11 @@ impl GoManager {
         "Symlink exists but target unknown".to_string()
     }
 
-    /// 解压 ZIP 文件 (Windows)
-    #[cfg(target_os = "windows")]
+    /// 解压 ZIP 文件 (Windows)    #[cfg(target_os = "windows")]
     fn extract_zip(zip_path: &Path, extract_to: &Path) -> Result<(), String> {
-        use std::fs::File;
-        use std::io::BufReader;
-
-        let file = File::open(zip_path).map_err(|e| format!("Failed to open zip file: {e}"))?;
-        let reader = BufReader::new(file);
+        let file =
+            std::fs::File::open(zip_path).map_err(|e| format!("Failed to open zip file: {e}"))?;
+        let reader = std::io::BufReader::new(file);
 
         let mut archive =
             zip::ZipArchive::new(reader).map_err(|e| format!("Failed to read zip archive: {e}"))?;
@@ -232,7 +229,7 @@ impl GoManager {
                     }
                 }
 
-                let mut outfile = File::create(&outpath)
+                let mut outfile = std::fs::File::create(&outpath)
                     .map_err(|e| format!("Failed to create output file: {e}"))?;
 
                 std::io::copy(&mut file, &mut outfile)
@@ -242,19 +239,14 @@ impl GoManager {
 
         Ok(())
     }
-
     /// 解压 tar.gz 文件 (Unix)
     #[cfg(not(target_os = "windows"))]
     fn extract_tar_gz(&self, tar_gz_path: &Path, extract_to: &Path) -> Result<(), String> {
-        use flate2::read::GzDecoder;
-        use std::fs::File;
-        use tar::Archive;
+        let file = std::fs::File::open(tar_gz_path)
+            .map_err(|e| format!("Failed to open tar.gz file: {}", e))?;
 
-        let file =
-            File::open(tar_gz_path).map_err(|e| format!("Failed to open tar.gz file: {}", e))?;
-
-        let gz = GzDecoder::new(file);
-        let mut archive = Archive::new(gz);
+        let gz = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(gz);
 
         // Extract all entries
         for entry in

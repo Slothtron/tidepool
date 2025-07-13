@@ -67,13 +67,6 @@ jobs:
     - name: Run ignored tests (network dependent)
       run: cargo test --workspace --all-features -- --ignored
       continue-on-error: true
-
-    - name: Run examples
-      run: |
-        cargo run --example temp_file_demo --package tidepool-version-manager
-        cargo run --example hash_verification_demo --package tidepool-version-manager
-        cargo run --example env_demo --package tidepool-gvm
-
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest

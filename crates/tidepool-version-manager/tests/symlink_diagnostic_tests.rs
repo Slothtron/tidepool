@@ -7,9 +7,8 @@ mod symlink_diagnostic_tests {
     use tidepool_version_manager::symlink::{
         get_symlink_target, is_symlink, remove_symlink_dir, symlink_dir,
     };
-
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_symlink_basic_operations() {
         let temp_dir = TempDir::new().unwrap();
 

@@ -6,9 +6,8 @@ mod symlink_edge_cases_tests {
     use tempfile::TempDir;
     use tidepool_version_manager::go::GoManager;
     use tidepool_version_manager::symlink::{get_symlink_target, is_symlink};
-
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_symlink_creation_with_existing_directory() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();
@@ -77,9 +76,8 @@ mod symlink_edge_cases_tests {
             }
         }
     }
-
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_symlink_creation_with_existing_file() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();

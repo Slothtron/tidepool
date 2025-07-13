@@ -7,14 +7,16 @@
 //! - SHA256校验和获取
 //! - 安装和缓存状态
 
-use std::path::PathBuf;
+use tempfile::TempDir;
 use tidepool_version_manager::go::GoManager;
 
 #[tokio::test]
 async fn test_get_version_info_basic() {
     let manager = GoManager::new();
-    let install_dir = PathBuf::from("/tmp/test_go_versions");
-    let cache_dir = PathBuf::from("/tmp/test_go_cache");
+    let temp_install = TempDir::new().unwrap();
+    let temp_cache = TempDir::new().unwrap();
+    let install_dir = temp_install.path().to_path_buf();
+    let cache_dir = temp_cache.path().to_path_buf();
 
     // 测试获取版本信息
     let result = manager.get_version_info("1.21.5", &install_dir, &cache_dir).await;
@@ -43,8 +45,10 @@ async fn test_get_version_info_basic() {
 #[tokio::test]
 async fn test_get_version_info_filename_format() {
     let manager = GoManager::new();
-    let install_dir = PathBuf::from("/tmp/test_go_versions");
-    let cache_dir = PathBuf::from("/tmp/test_go_cache");
+    let temp_install = TempDir::new().unwrap();
+    let temp_cache = TempDir::new().unwrap();
+    let install_dir = temp_install.path().to_path_buf();
+    let cache_dir = temp_cache.path().to_path_buf();
 
     let result = manager.get_version_info("1.21.5", &install_dir, &cache_dir).await;
 
@@ -77,8 +81,10 @@ async fn test_get_version_info_filename_format() {
 #[tokio::test]
 async fn test_get_version_info_invalid_version() {
     let manager = GoManager::new();
-    let install_dir = PathBuf::from("/tmp/test_go_versions");
-    let cache_dir = PathBuf::from("/tmp/test_go_cache");
+    let temp_install = TempDir::new().unwrap();
+    let temp_cache = TempDir::new().unwrap();
+    let install_dir = temp_install.path().to_path_buf();
+    let cache_dir = temp_cache.path().to_path_buf();
 
     // 测试无效版本 - 不应该失败，但SHA256可能为None
     let result = manager.get_version_info("1.99.99", &install_dir, &cache_dir).await;
@@ -98,8 +104,10 @@ async fn test_get_version_info_integration() {
     // 集成测试：验证实际能从go.dev获取到真实的版本信息
     // 注意：此测试需要网络连接，可以通过 `cargo test -- --ignored` 单独运行
     let manager = GoManager::new();
-    let install_dir = PathBuf::from("/tmp/test_go_versions");
-    let cache_dir = PathBuf::from("/tmp/test_go_cache");
+    let temp_install = TempDir::new().unwrap();
+    let temp_cache = TempDir::new().unwrap();
+    let install_dir = temp_install.path().to_path_buf();
+    let cache_dir = temp_cache.path().to_path_buf();
 
     // 使用一个已知存在的Go版本
     let result = manager.get_version_info("1.21.5", &install_dir, &cache_dir).await;

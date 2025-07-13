@@ -6,9 +6,8 @@ mod real_world_scenario_tests {
     use tempfile::TempDir;
     use tidepool_version_manager::go::GoManager;
     use tidepool_version_manager::symlink::{get_symlink_target, is_symlink};
-
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_install_and_switch_scenario() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();

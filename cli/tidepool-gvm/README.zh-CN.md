@@ -2,21 +2,27 @@
 
 > 📖 **Language**: [English](README.md) | [中文](README.zh-CN.md)
 
+[![Crates.io](https://img.shields.io/crates/v/tidepool-gvm.svg)](https://crates.io/crates/tidepool-gvm)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Go 版本管理的命令行接口，提供直观友好的方式在跨平台环境中安装、切换和管理 Go 版本。
 
-## 概述
+## ✨ 特性
 
-`tidepool-gvm` 是 Tidepool 项目的 CLI 组件，提供 `gvm` 命令。它基于 `tidepool-version-manager` 核心库构建，为 Go 版本管理提供现代化的包管理器风格界面。
+- **🔄 版本管理** - 安装、切换和卸载 Go 版本
+- **🚀 快速操作** - 异步下载，带进度显示
+- **🛡️ 安全保护** - 防止意外删除活动版本
+- **🌍 跨平台** - 支持 Windows、macOS 和 Linux
+- **🎨 现代界面** - 彩色终端输出和进度指示器
+- **⚙️ 环境管理** - 自动配置 GOROOT、GOPATH 和 PATH
 
-## 安装
+## 📦 安装
 
 ### 通过 Cargo
 
 ```bash
 cargo install tidepool-gvm
 ```
-
-这会将二进制文件安装为 `gvm` 命令。
 
 ### 从源码构建
 
@@ -28,141 +34,62 @@ cargo build --release --package tidepool-gvm
 
 二进制文件将位于 `target/release/gvm`（Windows 上为 `gvm.exe`）。
 
-## 使用方法
-
-### 基本命令
+## 🚀 快速开始
 
 ```bash
 # 安装并切换到指定 Go 版本
 gvm install 1.21.3
 
-# 强制重新安装（如果版本已存在）
-gvm install 1.21.3 --force
-
-# 列出已安装的 Go 版本
-gvm list
-
-# 列出可下载的版本
-gvm list --available
-
-# 显示当前 Go 版本和环境信息
-gvm status
-
-# 显示指定版本的详细信息
-gvm info 1.21.3
-
-# 卸载指定版本
-gvm uninstall 1.20.5
-
-# 显示帮助信息
-gvm --help
-```
-
-### 命令详情
-
-#### 安装命令
-```bash
-# 基本安装
-gvm install <VERSION>
-
-# 强制重新安装（覆盖现有版本）
-gvm install <VERSION> --force
-gvm install <VERSION> -f
-```
-
-#### 列表命令
-```bash
 # 列出已安装版本
 gvm list
 
-# 显示可用版本（未安装的）
-gvm list --available
-gvm list -a
-```
-
-#### 其他命令
-```bash
-# 显示当前 Go 版本和环境信息
+# 显示当前状态
 gvm status
 
-# 显示版本的详细信息
-gvm info <VERSION>
+# 列出可用版本
+gvm list --available
 
-# 卸载指定版本
-gvm uninstall <VERSION>
+# 显示帮助
+gvm --help
 ```
 
-## 特性
+## 📚 命令
 
-- **🔄 版本管理**: 安装、切换和卸载 Go 版本
-- **🚀 快速操作**: 异步下载，带进度显示
-- **🛡️ 安全保护**: 防止意外删除活动版本
-- **🌍 跨平台**: 支持 Windows、macOS 和 Linux
-- **🎨 现代界面**: 彩色终端输出和进度指示器
-- **⚙️ 环境管理**: 自动配置 GOROOT、GOPATH 和 PATH
+| 命令 | 描述 |
+|------|------|
+| `gvm install <版本>` | 安装并切换到指定 Go 版本 |
+| `gvm list` | 列出已安装版本 |
+| `gvm list --available` | 列出可下载的版本 |
+| `gvm status` | 显示当前 Go 版本和环境信息 |
+| `gvm info <版本>` | 显示指定版本的详细信息 |
+| `gvm uninstall <版本>` | 卸载指定版本 |
 
-## 配置
+### 选项
 
-GVM 将配置存储在平台特定目录中：
+- `--force, -f` - 强制重新安装现有版本
+- `--help, -h` - 显示帮助信息
+- `--version, -V` - 显示版本信息
 
-- **Windows**: `%APPDATA%\gvm\config.toml`
-- **macOS/Linux**: `~/.config/gvm/config.toml`
+## 🏗️ 架构
 
-### 配置示例
-
-```toml
-[gvm]
-install_dir = "/usr/local/go-versions"
-download_dir = "/tmp/gvm-downloads"
-mirror = "official"
-cleanup_downloads = true
-concurrent_connections = 4
-```
-
-## 环境变量
-
-切换到 Go 版本后，GVM 会自动配置：
-
-```bash
-GOROOT="/usr/local/go-versions/1.21.3"
-GOPATH="$HOME/go"  # 如果尚未设置
-PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-```
-
-## 开发
-
-此 CLI 工具使用以下技术构建：
-
-- **[clap](https://crates.io/crates/clap)**: 命令行参数解析
-- **[tokio](https://crates.io/crates/tokio)**: 异步运行时
-- **[indicatif](https://crates.io/crates/indicatif)**: 进度条
-- **[console](https://crates.io/crates/console)**: 终端样式
-- **[tidepool-version-manager](../../../crates/tidepool-version-manager/)**: 核心功能
-
-### 项目结构
+基于 [`tidepool-version-manager`](../../crates/tidepool-version-manager/) 核心库构建。
 
 ```
 cli/tidepool-gvm/
-├── Cargo.toml          # 包配置
 ├── src/
 │   ├── main.rs         # 主入口点
-│   ├── lib.rs          # 库接口
 │   ├── cli.rs          # 命令行解析
 │   ├── commands.rs     # 命令实现
 │   ├── config.rs       # 配置管理
 │   └── ui.rs          # 用户界面辅助
-├── examples/           # 使用示例
 └── tests/             # 集成测试
 ```
 
-### 构建
+## 🧪 开发
 
 ```bash
 # 开发构建
 cargo build --package tidepool-gvm
-
-# 发布构建
-cargo build --release --package tidepool-gvm
 
 # 运行测试
 cargo test --package tidepool-gvm
@@ -171,33 +98,14 @@ cargo test --package tidepool-gvm
 RUST_LOG=debug cargo run --package tidepool-gvm -- install 1.21.3
 ```
 
-## 架构
+## 🤝 贡献指南
 
-CLI 遵循清洁架构模式：
+欢迎贡献！请查看 [贡献指南](../../CONTRIBUTING.md) 了解详情。
 
-1. **CLI 层** (`cli.rs`): 使用 clap 解析命令行参数
-2. **命令层** (`commands.rs`): 实现每个命令的业务逻辑
-3. **UI 层** (`ui.rs`): 处理用户界面和终端输出
-4. **配置层** (`config.rs`): 管理应用程序配置
-5. **核心层**: 使用 `tidepool-version-manager` 进行实际版本管理
+## � 许可证
 
-## 错误处理
+本项目采用 MIT 许可证 - 查看 [LICENSE](../../LICENSE) 文件了解详情。
 
-CLI 提供用户友好的错误消息和建议：
+---
 
-```bash
-$ gvm use 1.21.3
-❌ Go 版本 1.21.3 未安装
-
-💡 建议:
-   1. 先安装它: gvm install 1.21.3
-   2. 列出可用版本: gvm list --available
-```
-
-## 许可证
-
-本项目基于 MIT 许可证。详见 [LICENSE](../../LICENSE) 文件。
-
-## 贡献
-
-欢迎贡献！请查看主项目的[贡献指南](../../CONTRIBUTING.md)了解详情。
+**由 [Tidepool 项目](https://github.com/Slothtron/tidepool) 维护** 🌊

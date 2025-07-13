@@ -5,7 +5,8 @@ use tidepool_version_manager::{
     go::GoManager, ListInstalledRequest, UninstallRequest, VersionManager,
 };
 
-#[cfg(windows)]
+// 仅在 Windows 上导入 SwitchRequest，因为相关测试只在 Windows 上运行
+#[cfg(target_os = "windows")]
 use tidepool_version_manager::SwitchRequest;
 
 // 测试GoManager构造函数
@@ -17,7 +18,7 @@ fn test_new_go_manager() {
 
 // 测试switch_to方法 - 基本功能测试
 #[test]
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 fn test_switch_to_basic_functionality() {
     let manager = GoManager::new();
     let temp_dir = TempDir::new().unwrap();
@@ -64,7 +65,7 @@ fn test_switch_to_basic_functionality() {
 
 // 测试版本切换（模拟）
 #[test]
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 fn test_switch_version() {
     let manager = GoManager::new();
     let temp_dir = TempDir::new().unwrap();

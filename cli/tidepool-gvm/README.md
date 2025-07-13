@@ -2,21 +2,27 @@
 
 > 📖 **Language**: [English](README.md) | [中文](README.zh-CN.md)
 
+[![Crates.io](https://img.shields.io/crates/v/tidepool-gvm.svg)](https://crates.io/crates/tidepool-gvm)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A command-line interface for Go version management, providing an intuitive and user-friendly way to install, switch, and manage Go versions across platforms.
 
-## Overview
+## ✨ Features
 
-`tidepool-gvm` is the CLI component of the Tidepool project that provides the `gvm` command. It's built on top of the `tidepool-version-manager` core library and offers a modern, package manager-style interface for Go version management.
+- **🔄 Version Management** - Install, switch, and uninstall Go versions
+- **🚀 Fast Operations** - Asynchronous downloads with progress display
+- **🛡️ Safety** - Protection against accidental deletion of active versions
+- **🌍 Cross-Platform** - Works on Windows, macOS, and Linux
+- **🎨 Modern UI** - Colorful terminal output and progress indicators
+- **⚙️ Environment Management** - Automatic GOROOT, GOPATH, and PATH configuration
 
-## Installation
+## 📦 Installation
 
 ### Via Cargo
 
 ```bash
 cargo install tidepool-gvm
 ```
-
-This installs the binary as `gvm` command.
 
 ### From Source
 
@@ -28,141 +34,62 @@ cargo build --release --package tidepool-gvm
 
 The binary will be available at `target/release/gvm` (or `gvm.exe` on Windows).
 
-## Usage
-
-### Basic Commands
+## 🚀 Quick Start
 
 ```bash
 # Install and switch to a Go version
 gvm install 1.21.3
 
-# Force reinstall if version already exists
-gvm install 1.21.3 --force
-
-# List installed Go versions
+# List installed versions
 gvm list
 
-# List available versions for download
-gvm list --available
-
-# Show current Go version and environment
+# Show current status
 gvm status
 
-# Show detailed information about a Go version
-gvm info 1.21.3
-
-# Uninstall a Go version
-gvm uninstall 1.20.5
+# List available versions
+gvm list --available
 
 # Show help
 gvm --help
 ```
 
-### Command Details
+## 📚 Commands
 
-#### Install Command
-```bash
-# Basic installation
-gvm install <VERSION>
+| Command | Description |
+|---------|-------------|
+| `gvm install <VERSION>` | Install and switch to a Go version |
+| `gvm list` | List installed versions |
+| `gvm list --available` | List available versions for download |
+| `gvm status` | Show current Go version and environment |
+| `gvm info <VERSION>` | Show detailed information about a version |
+| `gvm uninstall <VERSION>` | Uninstall a Go version |
 
-# Force reinstall (overwrite existing)
-gvm install <VERSION> --force
-gvm install <VERSION> -f
-```
+### Options
 
-#### List Command
-```bash
-# List installed versions
-gvm list
+- `--force, -f` - Force reinstall existing version
+- `--help, -h` - Show help information
+- `--version, -V` - Show version information
 
-# Show available versions (not installed)
-gvm list --available
-gvm list -a
-```
+## 🏗️ Architecture
 
-#### Other Commands
-```bash
-# Show current Go version and environment
-gvm status
-
-# Show detailed information about a version
-gvm info <VERSION>
-
-# Uninstall a version
-gvm uninstall <VERSION>
-```
-
-## Features
-
-- **🔄 Version Management**: Install, switch, and uninstall Go versions
-- **🚀 Fast Operations**: Asynchronous downloads with progress display
-- **🛡️ Safety**: Protection against accidental deletion of active versions
-- **🌍 Cross-Platform**: Works on Windows, macOS, and Linux
-- **🎨 Modern UI**: Colorful terminal output and progress indicators
-- **⚙️ Environment Management**: Automatic GOROOT, GOPATH, and PATH configuration
-
-## Configuration
-
-GVM stores configuration in platform-specific directories:
-
-- **Windows**: `%APPDATA%\gvm\config.toml`
-- **macOS/Linux**: `~/.config/gvm/config.toml`
-
-### Example Configuration
-
-```toml
-[gvm]
-install_dir = "/usr/local/go-versions"
-download_dir = "/tmp/gvm-downloads"
-mirror = "official"
-cleanup_downloads = true
-concurrent_connections = 4
-```
-
-## Environment Variables
-
-After switching to a Go version, GVM automatically configures:
-
-```bash
-GOROOT="/usr/local/go-versions/1.21.3"
-GOPATH="$HOME/go"  # if not already set
-PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-```
-
-## Development
-
-This CLI tool is built using:
-
-- **[clap](https://crates.io/crates/clap)**: Command-line argument parsing
-- **[tokio](https://crates.io/crates/tokio)**: Async runtime
-- **[indicatif](https://crates.io/crates/indicatif)**: Progress bars
-- **[console](https://crates.io/crates/console)**: Terminal styling
-- **[tidepool-version-manager](../../../crates/tidepool-version-manager/)**: Core functionality
-
-### Project Structure
+Built on top of [`tidepool-version-manager`](../../crates/tidepool-version-manager/) core library.
 
 ```
 cli/tidepool-gvm/
-├── Cargo.toml          # Package configuration
 ├── src/
 │   ├── main.rs         # Main entry point
-│   ├── lib.rs          # Library interface
 │   ├── cli.rs          # Command-line parsing
 │   ├── commands.rs     # Command implementations
 │   ├── config.rs       # Configuration management
 │   └── ui.rs          # User interface helpers
-├── examples/           # Usage examples
 └── tests/             # Integration tests
 ```
 
-### Building
+## 🧪 Development
 
 ```bash
 # Development build
 cargo build --package tidepool-gvm
-
-# Release build
-cargo build --release --package tidepool-gvm
 
 # Run tests
 cargo test --package tidepool-gvm
@@ -171,33 +98,14 @@ cargo test --package tidepool-gvm
 RUST_LOG=debug cargo run --package tidepool-gvm -- install 1.21.3
 ```
 
-## Architecture
+## 🤝 Contributing
 
-The CLI follows a clean architecture pattern:
+Contributions are welcome! Please see the [main project contributing guide](../../CONTRIBUTING.md) for details.
 
-1. **CLI Layer** (`cli.rs`): Parses command-line arguments using clap
-2. **Command Layer** (`commands.rs`): Implements business logic for each command
-3. **UI Layer** (`ui.rs`): Handles user interface and terminal output
-4. **Config Layer** (`config.rs`): Manages application configuration
-5. **Core Layer**: Uses `tidepool-version-manager` for actual version management
+## 📄 License
 
-## Error Handling
+Licensed under the MIT License. See [LICENSE](../../LICENSE) for details.
 
-The CLI provides user-friendly error messages and suggestions:
+---
 
-```bash
-$ gvm use 1.21.3
-❌ Go version 1.21.3 is not installed
-
-💡 Suggestions:
-   1. Install it first: gvm install 1.21.3
-   2. List available versions: gvm list --available
-```
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](../../LICENSE) for details.
-
-## Contributing
-
-Contributions are welcome! Please see the main project's [Contributing Guide](../../CONTRIBUTING.md) for details.
+**Part of the [Tidepool Project](https://github.com/Slothtron/tidepool)** 🌊

@@ -7,59 +7,37 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-blue.svg)]()
 
-`tidepool-version-manager` is the core library of the Tidepool project, providing powerful runtime version management capabilities. It supports installation, switching, uninstallation, and management of multiple programming language runtimes. Currently focused on Go version management, it will expand to support Python, Node.js, and more runtimes in the future.
+Core library of the Tidepool project, providing powerful Go version management capabilities with high-performance async operations and cross-platform support.
 
-## 🌟 Features
+## ✨ Key Features
 
-### 🚀 Core Functionality
-- **Async Version Installation** - High-performance concurrent downloading and installation
-- **Smart Version Switching** - Cross-platform version switching mechanism
-- **Complete Lifecycle Management** - Install, switch, uninstall, and list operations
-- **Status Querying** - Real-time runtime status checking
-- **Multi-Platform Support** - Full compatibility with Windows, macOS, and Linux
-
-### 🔧 Downloader Features
-- **Chunked Concurrent Downloads** - Multi-connection download acceleration
-- **Resume Downloads** - Automatic recovery from network interruptions
-- **Progress Reporting** - Real-time download progress feedback
-- **File Integrity Verification** - SHA256 checksums for security
-- **Smart Retry Mechanism** - Automatic handling of network exceptions
-
-### 🛡️ Security Features
-- **File Hash Verification** - Automatic verification of downloaded file integrity
-- **Permission Security** - Cross-platform symlinks without administrator privileges
-- **Safe Uninstallation** - Protection mechanisms to prevent accidental system file deletion
+- **🚀 Async Operations** - High-performance concurrent downloading and installation
+- **🔄 Version Management** - Install, switch, uninstall, and list Go versions
+- **🌐 Cross-Platform** - Windows, macOS, and Linux support
+- **⚡ Smart Downloads** - Chunked downloads with resume capability and progress reporting
+- **🛡️ Security** - SHA256 verification and safe uninstallation protection
+- **🔗 Symlink Management** - Cross-platform symbolic links without administrator privileges
 
 ## 📦 Installation
 
-Add the following to your `Cargo.toml`:
+Add to your `Cargo.toml`:
 
-[dependencies]
 ```toml
 [dependencies]
 tidepool-version-manager = "0.1.5"
 ```
-```
 
 ## 🚀 Quick Start
 
-### Basic Usage
-
 ```rust
-use tidepool_version_manager::{
-    go::GoManager,
-    VersionManager,
-    InstallRequest,
-    SwitchRequest
-};
+use tidepool_version_manager::{go::GoManager, VersionManager, InstallRequest, SwitchRequest};
 use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create Go version manager
     let go_manager = GoManager::new();
 
-    // Install Go 1.21.0
+    // Install Go version
     let install_request = InstallRequest {
         version: "1.21.0".to_string(),
         install_dir: PathBuf::from("/usr/local/go-versions"),
@@ -85,250 +63,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Query Available Versions
-
-```rust
-use tidepool_version_manager::{go::GoManager, VersionManager};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let go_manager = GoManager::new();
-
-    // Get available versions list
-    let available_versions = go_manager.list_available().await?;
-    println!("📋 Available Go versions ({} total):", available_versions.total_count);
-
-    for version in available_versions.versions.iter().take(10) {
-        println!("   - {}", version);
-    }
-
-    Ok(())
-}
-```
-
-### Status Query
-
-```rust
-use tidepool_version_manager::{go::GoManager, VersionManager, StatusRequest};
-use std::path::PathBuf;
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let go_manager = GoManager::new();
-
-    let status_request = StatusRequest {
-        base_dir: Some(PathBuf::from("/usr/local/go-versions")),
-    };
-
-    let status = go_manager.status(status_request)?;
-
-    if let Some(version) = status.current_version {
-        println!("🎯 Current Go version: {}", version);
-
-        if let Some(path) = status.install_path {
-            println!("📁 Installation path: {}", path.display());
-        }
-
-        println!("🌍 Environment variables:");
-        for (key, value) in status.environment_vars {
-            println!("   {}={}", key, value);
-        }
-    } else {
-        println!("❌ No installed Go version detected");
-    }
-
-    Ok(())
-}
-```
-
-## 🔧 Advanced Configuration
-
-### Custom Downloader Configuration
-
-```rust
-use tidepool_version_manager::downloader::{Downloader, DownloadConfig};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create custom download configuration
-    let config = DownloadConfig {
-        concurrent_connections: 8,        // Number of concurrent connections
-        timeout_seconds: 300,             // Timeout in seconds
-        enable_chunked_download: true,    // Enable chunked downloads
-        max_retries: 3,                   // Maximum retry attempts
-        min_chunk_size: 10 * 1024 * 1024, // Minimum chunk size (10MB)
-        ..Default::default()
-    };
-
-    let downloader = Downloader::with_config(config);
-
-    // Use custom downloader for downloads
-    let url = "https://go.dev/dl/go1.21.0.linux-amd64.tar.gz";
-    let output_path = "/tmp/go1.21.0.linux-amd64.tar.gz";
-
-    downloader.download(url, output_path, None).await?;
-    println!("✅ Download completed: {}", output_path);
-
-    Ok(())
-}
-```
-
-### Progress Callbacks
-
-```rust
-use tidepool_version_manager::downloader::{Downloader, ProgressReporter};
-
-struct MyProgressReporter;
-
-impl ProgressReporter for MyProgressReporter {
-    fn report_progress(&self, downloaded: u64, total: Option<u64>) {
-        if let Some(total) = total {
-            let percentage = (downloaded as f64 / total as f64) * 100.0;
-            println!("📊 Download progress: {:.1}% ({}/{})", percentage, downloaded, total);
-        } else {
-            println!("📊 Downloaded: {} bytes", downloaded);
-        }
-    }
-
-    fn report_error(&self, error: &str) {
-        eprintln!("❌ Download error: {}", error);
-    }
-
-    fn report_completion(&self) {
-        println!("✅ Download completed!");
-    }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let downloader = Downloader::new();
-    let progress_reporter = MyProgressReporter;
-
-    let url = "https://go.dev/dl/go1.21.0.linux-amd64.tar.gz";
-    let output_path = "/tmp/go1.21.0.linux-amd64.tar.gz";
-
-    downloader.download(url, output_path, Some(&progress_reporter)).await?;
-
-    Ok(())
-}
-```
-
-## 🏗️ Architecture Design
-
-### Core Components
+## 🏗️ Architecture
 
 ```
 tidepool-version-manager/
 ├── src/
 │   ├── lib.rs              # Public interfaces and type definitions
 │   ├── go.rs               # Go version management implementation
-│   └── downloader.rs       # Universal downloader module
-├── examples/               # Usage examples
+│   ├── downloader.rs       # Universal downloader module
+│   └── symlink.rs          # Cross-platform symlink management
 └── tests/                  # Integration tests
 ```
 
-### Feature Overview
+## 📚 API Reference
 
-- **`VersionManager` Trait** - Unified version management interface, extensible for other runtimes
-- **`GoManager`** - Concrete implementation for Go language version management
-- **`Downloader`** - High-performance async downloader with resume and progress reporting
-- **Cross-platform Support** - Unified abstraction for cross-platform symlinks
+Complete documentation: [docs.rs/tidepool-version-manager](https://docs.rs/tidepool-version-manager)
 
-## 🧪 Running Examples
+### Core Types
 
-The project includes several example programs demonstrating different use cases:
+- [`VersionManager`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/trait.VersionManager.html) - Main trait for version management operations
+- [`GoManager`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/go/struct.GoManager.html) - Go language version manager implementation
+- [`Downloader`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/downloader/struct.Downloader.html) - High-performance file downloader
 
-```bash
-# Downloader functionality demo
-cargo run --example downloader_test
-
-# Hash verification demo
-cargo run --example hash_verification_demo
-
-
-
-# Temporary file handling demo
-cargo run --example temp_file_demo
-
-# Uninstall protection demo
-cargo run --example uninstall_protection_demo
-```
-
-## 🧪 Testing
-
-Run the complete test suite:
+## 🧪 Development
 
 ```bash
-# Run all tests
-cargo test
-
-# Run specific tests
-cargo test go_manager_tests
-
-# Run integration tests
-cargo test --test integration_tests
-```
-
-## 🔄 Version Compatibility
-
-| Version | Rust Version | Features |
-|---------|-------------|----------|
-| 0.1.5   | 1.70+       | Unified symlink implementation, improved cross-platform compatibility |
-| 0.1.4   | 1.70+       | Workspace configuration optimization, code refactoring |
-| 0.1.3   | 1.70+       | Go version management, high-performance downloader |
-| 0.1.2   | 1.70+       | Basic version management functionality |
-| 0.1.1   | 1.70+       | Initial release |
-
-## 🚧 Future Plans
-
-- [ ] **Python Version Management** - Support for Python/pyenv compatibility
-- [ ] **Node.js Version Management** - Support for Node.js/nvm compatibility
-- [ ] **Configuration File Support** - Project-level version configuration
-- [ ] **Plugin System** - Custom version management extensions
-- [ ] **Mirror Source Support** - Accelerated downloads via domestic mirrors
-
-## 📋 API Documentation
-
-Complete API documentation is available at [docs.rs](https://docs.rs/tidepool-version-manager).
-
-### Main Types
-
-- [`VersionManager`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/trait.VersionManager.html) - Version manager trait
-- [`GoManager`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/go/struct.GoManager.html) - Go version manager
-- [`Downloader`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/downloader/struct.Downloader.html) - High-performance downloader
-- [`InstallRequest`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/struct.InstallRequest.html) - Installation request structure
-- [`RuntimeStatus`](https://docs.rs/tidepool-version-manager/latest/tidepool_version_manager/struct.RuntimeStatus.html) - Runtime status information
-
-## 🤝 Contributing
-
-We welcome all forms of contributions! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
-
-### Development Environment Setup
-
-```bash
-# Clone repository
-git clone https://github.com/Slothtron/tidepool.git
-cd tidepool/crates/tidepool-version-manager
-
 # Run tests
 cargo test
 
-# Check code formatting
+# Check code quality
 cargo fmt --check
-
-# Run Clippy checks
 cargo clippy --all-targets --all-features
 ```
 
+## 🤝 Contributing
+
+Contributions are welcome! Please see the [main project contributing guide](../../CONTRIBUTING.md) for details.
+
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
-
-## 🔗 Related Links
-
-- [GitHub Repository](https://github.com/Slothtron/tidepool)
-- [Issue Tracker](https://github.com/Slothtron/tidepool/issues)
-- [Releases](https://github.com/Slothtron/tidepool/releases)
+Licensed under the MIT License. See [LICENSE](../../LICENSE) for details.
 
 ---
 
-**Maintained by the [Tidepool Project](https://github.com/Slothtron/tidepool)** 🌊
+**Part of the [Tidepool Project](https://github.com/Slothtron/tidepool)** 🌊

@@ -26,12 +26,12 @@ pub fn symlink_dir<P: AsRef<Path>, U: AsRef<Path>>(src: P, dst: U) -> std::io::R
 
     debug!("Creating symlink: {} -> {}", dst.display(), src.display());
 
-    #[cfg(unix)]
+    #[cfg(not(target_os = "windows"))]
     {
         std::os::unix::fs::symlink(src, dst)?;
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         junction::create(src, dst)?;
     }
@@ -49,16 +49,15 @@ pub fn symlink_dir<P: AsRef<Path>, U: AsRef<Path>>(src: P, dst: U) -> std::io::R
 /// 当无法删除链接时返回错误
 pub fn remove_symlink_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
     let path = path.as_ref();
-
     debug!("Removing symlink: {}", path.display());
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         // Windows: junction 被当作目录删除
         std::fs::remove_dir(path)?;
     }
 
-    #[cfg(unix)]
+    #[cfg(not(target_os = "windows"))]
     {
         // Unix: symlink 被当作文件删除
         std::fs::remove_file(path)?;
@@ -80,14 +79,13 @@ pub fn remove_symlink_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
 /// 当路径不是符号链接或无法读取时返回错误
 pub fn read_symlink<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
     let path = path.as_ref();
-
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         // Windows: 使用 junction crate
         junction::get_target(path)
     }
 
-    #[cfg(unix)]
+    #[cfg(not(target_os = "windows"))]
     {
         // Unix: 使用标准 read_link
         std::fs::read_link(path)
@@ -103,14 +101,13 @@ pub fn read_symlink<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
 /// 如果是符号链接/junction 返回 true，否则返回 false
 pub fn is_symlink<P: AsRef<Path>>(path: P) -> bool {
     let path = path.as_ref();
-
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         // Windows: 仅检查 junction
         junction::exists(path).unwrap_or(false)
     }
 
-    #[cfg(unix)]
+    #[cfg(not(target_os = "windows"))]
     {
         // Unix: 仅检查标准 symlink
         path.is_symlink()
@@ -130,8 +127,7 @@ pub fn get_symlink_target<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
     if !path.exists() {
         return None;
     }
-
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         // Windows: 仅使用 junction crate
         if junction::exists(path).unwrap_or(false) {
@@ -141,7 +137,7 @@ pub fn get_symlink_target<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(not(target_os = "windows"))]
     {
         // Unix: 仅使用标准 symlink
         if path.is_symlink() {

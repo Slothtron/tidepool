@@ -23,6 +23,9 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 url = { workspace = true }
 sha2 = "0.10"
+
+# Windows-specific dependencies
+[target.'cfg(target_os = "windows")'.dependencies]
 junction = "1.2.0"
 
 # Unix-specific dependencies
