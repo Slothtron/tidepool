@@ -1,14 +1,15 @@
-//! 测试 junction 创建时的边界情况处理
+//! 测试符号链接创建时的边界情况处理
 
 #[cfg(test)]
-mod junction_edge_cases_tests {
+mod symlink_edge_cases_tests {
     use std::fs;
     use tempfile::TempDir;
     use tidepool_version_manager::go::GoManager;
+    use tidepool_version_manager::symlink::{get_symlink_target, is_symlink};
 
     #[test]
     #[cfg(windows)]
-    fn test_junction_creation_with_existing_directory() {
+    fn test_symlink_creation_with_existing_directory() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();
 
@@ -32,12 +33,12 @@ mod junction_edge_cases_tests {
         let result1 = manager.switch_version(version1, temp_dir.path());
         match result1 {
             Ok(()) => {
-                let junction_path = temp_dir.path().join("current");
-                assert!(junction_path.exists(), "Junction should be created for version1");
-                println!("✅ 成功创建第一个 junction: {version1}");
+                let symlink_path = temp_dir.path().join("current");
+                assert!(symlink_path.exists(), "符号链接应该为 version1 创建");
+                println!("✅ 成功创建第一个符号链接: {version1}");
             }
             Err(e) => {
-                if e.contains("Failed to create junction")
+                if e.contains("Failed to create symlink")
                     || e.contains("Access is denied")
                     || e.contains("permission")
                 {
@@ -49,29 +50,29 @@ mod junction_edge_cases_tests {
             }
         }
 
-        // 现在切换到第二个版本（这应该成功覆盖第一个 junction）
+        // 现在切换到第二个版本（这应该成功覆盖第一个符号链接）
         let result2 = manager.switch_version(version2, temp_dir.path());
         match result2 {
             Ok(()) => {
-                let junction_path = temp_dir.path().join("current");
-                assert!(junction_path.exists(), "Junction should be updated for version2");
+                let symlink_path = temp_dir.path().join("current");
+                assert!(symlink_path.exists(), "符号链接应该为 version2 更新");
 
-                // 验证 junction 指向正确的版本
-                if junction::exists(&junction_path).unwrap_or(false) {
-                    if let Ok(target) = junction::get_target(&junction_path) {
-                        assert_eq!(target, version2_path, "Junction should point to version2");
-                        println!("✅ 成功更新 junction 到新版本: {version2}");
+                // 验证符号链接指向正确的版本
+                if is_symlink(&symlink_path) {
+                    if let Some(target) = get_symlink_target(&symlink_path) {
+                        assert_eq!(target, version2_path, "符号链接应该指向 version2");
+                        println!("✅ 成功更新符号链接到新版本: {version2}");
                     }
                 }
             }
             Err(e) => {
-                if e.contains("Failed to create junction")
+                if e.contains("Failed to create symlink")
                     || e.contains("Access is denied")
                     || e.contains("permission")
                 {
                     println!("⚠️ 跳过测试（权限不足）: {e}");
                 } else {
-                    panic!("Junction 更新失败: {e}");
+                    panic!("符号链接更新失败: {e}");
                 }
             }
         }
@@ -79,7 +80,7 @@ mod junction_edge_cases_tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_junction_creation_with_existing_file() {
+    fn test_symlink_creation_with_existing_file() {
         let temp_dir = TempDir::new().unwrap();
         let manager = GoManager::new();
 
@@ -91,20 +92,20 @@ mod junction_edge_cases_tests {
         fs::write(bin_path.join("go.exe"), b"fake go binary").unwrap();
 
         // 创建一个同名文件占用 current 路径
-        let junction_path = temp_dir.path().join("current");
-        fs::write(&junction_path, b"blocking file").unwrap();
-        assert!(junction_path.is_file(), "Should have created a file");
+        let symlink_path = temp_dir.path().join("current");
+        fs::write(&symlink_path, b"blocking file").unwrap();
+        assert!(symlink_path.is_file(), "Should have created a file");
 
-        // 尝试创建 junction（应该删除文件并成功创建）
+        // 尝试创建符号链接（应该删除文件并成功创建）
         let result = manager.switch_version(version, temp_dir.path());
         match result {
             Ok(()) => {
-                assert!(junction_path.exists(), "Junction should be created");
-                assert!(junction_path.is_dir(), "Should be a directory/junction, not a file");
-                println!("✅ 成功替换文件并创建 junction");
+                assert!(symlink_path.exists(), "符号链接应该被创建");
+                assert!(symlink_path.is_dir(), "应该是目录/符号链接，不是文件");
+                println!("✅ 成功替换文件并创建符号链接");
             }
             Err(e) => {
-                if e.contains("Failed to create junction")
+                if e.contains("Failed to create symlink")
                     || e.contains("Access is denied")
                     || e.contains("permission")
                 {
@@ -117,8 +118,8 @@ mod junction_edge_cases_tests {
     }
 
     #[test]
-    fn test_junction_error_handling_robustness() {
+    fn test_symlink_error_handling_robustness() {
         // 测试错误处理的健壮性（在所有平台上都运行）
-        println!("✅ Junction 错误处理逻辑已编译和测试");
+        println!("✅ 符号链接错误处理逻辑已编译和测试");
     }
 }

@@ -4,7 +4,9 @@
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-use tidepool_version_manager::{go::GoManager, UninstallRequest, VersionManager};
+use tidepool_version_manager::{
+    go::GoManager, symlink::symlink_dir, UninstallRequest, VersionManager,
+};
 
 fn main() {
     println!("🛡️  GVM 卸载保护机制演示");
@@ -123,29 +125,9 @@ fn create_current_symlink(base_dir: &Path, target_version: &str) {
     let current_link = base_dir.join("current");
     let target_dir = base_dir.join(target_version);
 
-    #[cfg(target_os = "windows")]
-    {
-        // 在 Windows 上创建 junction
-        let output = std::process::Command::new("cmd")
-            .args([
-                "/C",
-                "mklink",
-                "/J",
-                &current_link.to_string_lossy(),
-                &target_dir.to_string_lossy(),
-            ])
-            .output()
-            .expect("无法执行 mklink 命令");
-
-        if !output.status.success() {
-            println!("警告: 无法创建 junction，可能权限不足");
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // 在 Unix 系统上创建符号链接
-        std::os::unix::fs::symlink(&target_dir, &current_link).expect("无法创建符号链接");
+    // 使用统一的 symlink 模块
+    if let Err(e) = symlink_dir(&target_dir, &current_link) {
+        println!("警告: 无法创建符号链接，可能权限不足: {e}");
     }
 }
 

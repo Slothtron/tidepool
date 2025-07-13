@@ -1,40 +1,10 @@
-[package]
-name = "tidepool"
-
-[package.version]
-workspace = true
-
-[package.edition]
-workspace = true
-
-[package.rust-version]
-workspace = true
-
-[package.authors]
-workspace = true
-
-[package.license]
-workspace = true
-
-[package.repository]
-workspace = true
-
-[dependencies.tidepool-version-manager]
-version = "0.1.3"
-path = "crates/tidepool-version-manager"
-
-[dev-dependencies]
-tempfile = "3.5.0"
 
 [workspace]
 resolver = "2"
-members = [
-    "crates/tidepool-version-manager",
-    "cli/tidepool-gvm",
-]
+members = ["crates/tidepool-version-manager", "cli/tidepool-gvm"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 rust-version = "1.70.0"
 authors = ["Slothtron"]
@@ -68,12 +38,7 @@ features = ["derive"]
 [workspace.dependencies.reqwest]
 version = "0.11"
 default-features = false
-features = [
-    "stream",
-    "blocking",
-    "json",
-    "rustls-tls",
-]
+features = ["stream", "blocking", "json", "rustls-tls"]
 
 [workspace.dependencies.clap]
 version = "4.0"

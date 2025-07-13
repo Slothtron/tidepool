@@ -1,10 +1,11 @@
-//! 测试Go版本切换（Junction Point方法）
+//! 测试Go版本切换（跨平台符号链接方法）
 
 #[cfg(test)]
 mod tests {
     #[cfg(windows)]
     use std::fs;
     use tidepool_version_manager::go::GoManager;
+    use tidepool_version_manager::symlink::{get_symlink_target, is_symlink};
 
     #[cfg(windows)]
     use tempfile::tempdir;
@@ -21,7 +22,7 @@ mod tests {
     }
     #[test]
     #[cfg(windows)]
-    fn test_junction_point_method() {
+    fn test_symlink_creation_method() {
         let temp_dir = tempdir().unwrap();
         let manager = GoManager::new();
         let version = "1.21.0";
@@ -33,22 +34,22 @@ mod tests {
         // 测试应该成功（在真实环境中）或者失败并返回有意义的错误消息
         match result {
             Ok(()) => {
-                // 验证junction是否创建
-                let junction_path = temp_dir.path().join("current");
-                assert!(junction_path.exists());
+                // 验证符号链接是否创建
+                let symlink_path = temp_dir.path().join("current");
+                assert!(symlink_path.exists());
 
-                // 使用 junction crate 验证 junction point
-                assert!(junction::exists(&junction_path).unwrap_or(false));
+                // 使用 symlink 模块验证符号链接
+                assert!(is_symlink(&symlink_path));
 
-                // 验证 junction 目标
-                if let Ok(target) = junction::get_target(&junction_path) {
+                // 验证符号链接目标
+                if let Some(target) = get_symlink_target(&symlink_path) {
                     assert_eq!(target, temp_dir.path().join(version));
                 }
             }
             Err(e) => {
-                // 在测试环境中，junction 创建可能失败，这是可以接受的
+                // 在测试环境中，符号链接创建可能失败，这是可以接受的
                 assert!(
-                    e.contains("Failed to create junction")
+                    e.contains("Failed to create symlink")
                         || e.contains("Access is denied")
                         || e.contains("permission")
                 );
@@ -76,11 +77,11 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_get_junction_info() {
+    fn test_get_symlink_info() {
         let temp_dir = tempdir().unwrap();
         let manager = GoManager::new();
 
         let info = manager.get_symlink_info(temp_dir.path());
-        assert_eq!(info, "No junction found");
+        assert_eq!(info, "No symlink found");
     }
 }

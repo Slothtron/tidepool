@@ -4,6 +4,7 @@
 /// 系统会阻止操作并提供友好的错误信息。
 use std::fs;
 use tempfile::TempDir;
+use tidepool_version_manager::symlink::symlink_dir;
 use tidepool_version_manager::{go::GoManager, UninstallRequest, VersionManager};
 
 /// 测试卸载当前活跃版本时的错误处理
@@ -26,36 +27,12 @@ fn test_cannot_uninstall_current_version() {
     #[cfg(not(target_os = "windows"))]
     let go_binary = bin_dir.join("go");
 
-    fs::write(&go_binary, "fake go binary").expect("无法创建 go 二进制文件");
-
-    // 创建软链接/junction 指向当前版本
-    let current_link = base_dir.join("current");
-
-    #[cfg(target_os = "windows")]
-    {
-        // 在 Windows 上创建 junction
-        let output = std::process::Command::new("cmd")
-            .args([
-                "/C",
-                "mklink",
-                "/J",
-                &current_link.to_string_lossy(),
-                &version_dir.to_string_lossy(),
-            ])
-            .output()
-            .expect("无法执行 mklink 命令");
-
-        if !output.status.success() {
-            // 如果 mklink 失败（可能权限不足），跳过这个测试
-            println!("跳过测试：无法创建 junction，可能权限不足");
-            return;
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // 在 Unix 系统上创建符号链接
-        std::os::unix::fs::symlink(&version_dir, &current_link).expect("无法创建符号链接");
+    fs::write(&go_binary, "fake go binary").expect("无法创建 go 二进制文件"); // 创建符号链接指向当前版本
+    let current_link = base_dir.join("current"); // 使用统一的 symlink 模块创建符号链接
+    if symlink_dir(&version_dir, &current_link).is_err() {
+        // 如果符号链接创建失败（可能权限不足），跳过这个测试
+        println!("跳过测试：无法创建符号链接，可能权限不足");
+        return;
     }
 
     // 验证当前版本检测正常工作
@@ -115,33 +92,13 @@ fn test_can_uninstall_non_current_version() {
         let other_go_binary = other_bin_dir.join("go");
         fs::write(&current_go_binary, "fake go binary").expect("无法创建当前版本 go 二进制文件");
         fs::write(&other_go_binary, "fake go binary").expect("无法创建其他版本 go 二进制文件");
-    }
-
-    // 创建软链接/junction 指向当前版本
+    } // 创建符号链接指向当前版本
     let current_link = base_dir.join("current");
 
-    #[cfg(target_os = "windows")]
-    {
-        let output = std::process::Command::new("cmd")
-            .args([
-                "/C",
-                "mklink",
-                "/J",
-                &current_link.to_string_lossy(),
-                &current_version_dir.to_string_lossy(),
-            ])
-            .output()
-            .expect("无法执行 mklink 命令");
-
-        if !output.status.success() {
-            println!("跳过测试：无法创建 junction，可能权限不足");
-            return;
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::os::unix::fs::symlink(&current_version_dir, &current_link).expect("无法创建符号链接");
+    // 使用统一的 symlink 模块创建符号链接
+    if symlink_dir(&current_version_dir, &current_link).is_err() {
+        println!("跳过测试：无法创建符号链接，可能权限不足");
+        return;
     }
 
     // 验证当前版本检测正常工作

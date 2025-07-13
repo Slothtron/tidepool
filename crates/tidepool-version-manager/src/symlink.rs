@@ -1,0 +1,217 @@
+//! 跨平台符号链接统一接口模块
+//!
+//! 这个模块提供了跨平台的符号链接操作接口：
+//! - Windows: 使用 junction points 进行目录链接（内部实现）
+//! - Unix: 使用符号链接
+//!
+//! 统一的 API 使得上层代码无需关心平台差异。
+//!
+//! 所有操作都只尝试一次，失败时直接返回详细错误信息，
+//! 不进行重试，确保错误信息透明传递给用户。
+
+use log::debug;
+use std::path::{Path, PathBuf};
+
+/// 跨平台创建目录符号链接（Windows 使用 junction，Unix 使用 symlink）
+///
+/// # 参数
+/// * `from` - 链接指向的目标路径
+/// * `to` - 要创建的链接路径
+///
+/// # 错误
+/// 当无法创建链接时返回错误
+pub fn symlink_dir<P: AsRef<Path>, U: AsRef<Path>>(src: P, dst: U) -> std::io::Result<()> {
+    let src = src.as_ref();
+    let dst = dst.as_ref();
+
+    debug!("Creating symlink: {} -> {}", dst.display(), src.display());
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(src, dst)?;
+    }
+
+    #[cfg(windows)]
+    {
+        junction::create(src, dst)?;
+    }
+
+    debug!("Successfully created symlink: {} -> {}", dst.display(), src.display());
+    Ok(())
+}
+
+/// 跨平台删除目录符号链接
+///
+/// # 参数
+/// * `path` - 要删除的链接路径
+///
+/// # 错误
+/// 当无法删除链接时返回错误
+pub fn remove_symlink_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
+    let path = path.as_ref();
+
+    debug!("Removing symlink: {}", path.display());
+
+    #[cfg(windows)]
+    {
+        // Windows: junction 被当作目录删除
+        std::fs::remove_dir(path)?;
+    }
+
+    #[cfg(unix)]
+    {
+        // Unix: symlink 被当作文件删除
+        std::fs::remove_file(path)?;
+    }
+
+    debug!("Successfully removed symlink: {}", path.display());
+    Ok(())
+}
+
+/// 读取符号链接目标（跨平台）
+///
+/// # 参数
+/// * `path` - 符号链接路径
+///
+/// # 返回
+/// 链接指向的目标路径
+///
+/// # 错误
+/// 当路径不是符号链接或无法读取时返回错误
+pub fn read_symlink<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
+    let path = path.as_ref();
+
+    #[cfg(windows)]
+    {
+        // Windows: 使用 junction crate
+        junction::get_target(path)
+    }
+
+    #[cfg(unix)]
+    {
+        // Unix: 使用标准 read_link
+        std::fs::read_link(path)
+    }
+}
+
+/// 检查路径是否为符号链接/junction
+///
+/// # 参数
+/// * `path` - 要检查的路径
+///
+/// # 返回
+/// 如果是符号链接/junction 返回 true，否则返回 false
+pub fn is_symlink<P: AsRef<Path>>(path: P) -> bool {
+    let path = path.as_ref();
+
+    #[cfg(windows)]
+    {
+        // Windows: 仅检查 junction
+        junction::exists(path).unwrap_or(false)
+    }
+
+    #[cfg(unix)]
+    {
+        // Unix: 仅检查标准 symlink
+        path.is_symlink()
+    }
+}
+
+/// 获取符号链接目标路径（如果是符号链接）
+///
+/// # 参数
+/// * `path` - 要检查的路径
+///
+/// # 返回
+/// 如果是符号链接，返回目标路径；否则返回 None
+pub fn get_symlink_target<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
+    let path = path.as_ref();
+
+    if !path.exists() {
+        return None;
+    }
+
+    #[cfg(windows)]
+    {
+        // Windows: 仅使用 junction crate
+        if junction::exists(path).unwrap_or(false) {
+            junction::get_target(path).ok()
+        } else {
+            None
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        // Unix: 仅使用标准 symlink
+        if path.is_symlink() {
+            std::fs::read_link(path).ok()
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+    #[test]
+    fn test_create_and_remove_symlink() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // 创建目标目录
+        let target_path = temp_dir.path().join("target");
+        std::fs::create_dir_all(&target_path).unwrap();
+
+        // 创建测试文件
+        std::fs::write(target_path.join("test.txt"), "Hello, World!").unwrap();
+
+        let link_path = temp_dir.path().join("link");
+
+        // 确保链接路径不存在
+        if link_path.exists() {
+            if is_symlink(&link_path) {
+                let _ = remove_symlink_dir(&link_path);
+            } else if link_path.is_dir() {
+                let _ = std::fs::remove_dir_all(&link_path);
+            } else {
+                let _ = std::fs::remove_file(&link_path);
+            }
+        }
+
+        // 测试创建符号链接
+        symlink_dir(&target_path, &link_path).unwrap();
+        assert!(link_path.exists());
+        assert!(is_symlink(&link_path));
+
+        // 测试通过符号链接访问文件
+        let test_file = link_path.join("test.txt");
+        assert!(test_file.exists());
+        let content = std::fs::read_to_string(test_file).unwrap();
+        assert_eq!(content, "Hello, World!");
+
+        // 测试获取符号链接目标
+        let target = get_symlink_target(&link_path).unwrap();
+        assert_eq!(target, target_path);
+
+        // 测试删除符号链接
+        remove_symlink_dir(&link_path).unwrap();
+        assert!(!link_path.exists());
+        assert!(target_path.exists()); // 确保目标目录仍然存在
+    }
+    #[test]
+    fn test_nonexistent_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let nonexistent = temp_dir.path().join("nonexistent");
+
+        // 测试删除不存在的路径（应该失败）
+        assert!(remove_symlink_dir(&nonexistent).is_err());
+
+        // 测试获取不存在路径的目标
+        assert!(get_symlink_target(&nonexistent).is_none());
+
+        // 测试检查不存在的路径
+        assert!(!is_symlink(&nonexistent));
+    }
+}

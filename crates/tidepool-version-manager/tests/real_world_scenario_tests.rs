@@ -5,6 +5,7 @@ mod real_world_scenario_tests {
     use std::fs;
     use tempfile::TempDir;
     use tidepool_version_manager::go::GoManager;
+    use tidepool_version_manager::symlink::{get_symlink_target, is_symlink};
 
     #[test]
     #[cfg(windows)]
@@ -22,26 +23,26 @@ mod real_world_scenario_tests {
         fs::write(bin1_path.join("go.exe"), b"Go version 1.20.0").unwrap();
         println!("📦 模拟安装 Go {version1}");
 
-        // 第一次切换（创建新的 junction）
+        // 第一次切换（创建新的符号链接）
         println!("🔄 第一次切换到 {version1}");
         let result1 = manager.switch_version(version1, temp_dir.path());
         match result1 {
             Ok(()) => {
                 println!("✅ 成功切换到 {version1}");
-                let junction_path = temp_dir.path().join("current");
-                if junction::exists(&junction_path).unwrap_or(false) {
-                    if let Ok(target) = junction::get_target(&junction_path) {
-                        println!("🔗 Junction 指向: {}", target.display());
+                let symlink_path = temp_dir.path().join("current");
+                if is_symlink(&symlink_path) {
+                    if let Some(target) = get_symlink_target(&symlink_path) {
+                        println!("🔗 符号链接指向: {}", target.display());
                     }
                 }
             }
             Err(e) => {
                 println!("⚠️ 第一次切换失败: {e}");
 
-                // 检查是否是已知的Windows权限/junction限制
+                // 检查是否是已知的Windows权限/符号链接限制
                 if e.contains("os error 183") || e.contains("当文件已存在时，无法创建该文件")
                 {
-                    println!("🛡️ Windows junction 创建需要管理员权限或开启开发者模式");
+                    println!("🛡️ Windows 符号链接创建需要管理员权限或开启开发者模式");
                     println!("这是 Windows 系统限制，不是代码错误");
                     return; // 跳过此测试
                 } else if e.contains("permission")
@@ -65,16 +66,16 @@ mod real_world_scenario_tests {
         fs::write(bin2_path.join("go.exe"), b"Go version 1.21.0").unwrap();
         println!("📦 模拟安装 Go {version2}");
 
-        // 第二次切换（应该替换现有的 junction）
+        // 第二次切换（应该替换现有的符号链接）
         println!("🔄 切换到新版本 {version2}");
         let result2 = manager.switch_version(version2, temp_dir.path());
         match result2 {
             Ok(()) => {
                 println!("✅ 成功切换到 {version2}");
-                let junction_path = temp_dir.path().join("current");
-                if junction::exists(&junction_path).unwrap_or(false) {
-                    if let Ok(target) = junction::get_target(&junction_path) {
-                        println!("🔗 Junction 现在指向: {}", target.display());
+                let symlink_path = temp_dir.path().join("current");
+                if is_symlink(&symlink_path) {
+                    if let Some(target) = get_symlink_target(&symlink_path) {
+                        println!("🔗 符号链接现在指向: {}", target.display());
                     }
                 }
             }

@@ -267,9 +267,7 @@ fn switch_to_existing_version(
 
     match manager.switch_to(switch_request) {
         Ok(()) => {
-            ui.success(&Messages::switched_to_go_successfully(&version));
-
-            // 显示软链接/Junction信息
+            ui.success(&Messages::switched_to_go_successfully(&version)); // 显示符号链接信息
             let symlink_info = manager.get_symlink_info(&base_dir);
             if !symlink_info.is_empty() {
                 ui.info(&symlink_info);
