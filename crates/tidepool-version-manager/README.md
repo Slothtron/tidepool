@@ -35,11 +35,10 @@
 Add the following to your `Cargo.toml`:
 
 [dependencies]
-tidepool-version-manager = "0.1.3"
-```
 ```toml
 [dependencies]
-tidepool-version-manager = "0.1.4"
+tidepool-version-manager = "0.1.5"
+```
 ```
 
 ## 🚀 Quick Start
@@ -273,6 +272,8 @@ cargo test --test integration_tests
 
 | Version | Rust Version | Features |
 |---------|-------------|----------|
+| 0.1.5   | 1.70+       | Unified symlink implementation, improved cross-platform compatibility |
+| 0.1.4   | 1.70+       | Workspace configuration optimization, code refactoring |
 | 0.1.3   | 1.70+       | Go version management, high-performance downloader |
 | 0.1.2   | 1.70+       | Basic version management functionality |
 | 0.1.1   | 1.70+       | Initial release |

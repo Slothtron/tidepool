@@ -1576,7 +1576,7 @@ dependencies = [
 
 [[package]]
 name = "tidepool-gvm"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "clap",
@@ -1590,7 +1590,7 @@ dependencies = [
 
 [[package]]
 name = "tidepool-version-manager"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "bytes",
