@@ -1,5 +1,5 @@
-use console::style;
 use crate::VersionList;
+use console::style;
 
 /// Icons for cross-platform compatibility
 pub struct Icons;
@@ -235,11 +235,7 @@ impl UI {
     /// Display installation progress and result
     pub fn display_install_result(&self, version_info: &crate::VersionInfo) {
         self.success(&format!("Go {} installed successfully!", version_info.version));
-        self.kv_pair_colored(
-            "Location",
-            &version_info.path.display().to_string(),
-            "dimmed",
-        );
+        self.kv_pair_colored("Location", &version_info.path.display().to_string(), "dimmed");
         self.newline();
         self.hint(&format!("Use this version: gvm use {}", version_info.version));
     }

@@ -1,5 +1,5 @@
-use tidepool_gvm::cli::Cli;
 use clap::Parser;
+use tidepool_gvm::cli::Cli;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

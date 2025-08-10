@@ -129,15 +129,15 @@ impl GoManager {
 
     /// Extract ZIP archive
     fn extract_zip(zip_path: &Path, extract_to: &Path) -> Result<(), String> {
-        let file = std::fs::File::open(zip_path)
-            .map_err(|e| format!("Failed to open ZIP file: {}", e))?;
+        let file =
+            std::fs::File::open(zip_path).map_err(|e| format!("Failed to open ZIP file: {}", e))?;
 
-        let mut archive = zip::ZipArchive::new(file)
-            .map_err(|e| format!("Failed to read ZIP archive: {}", e))?;
+        let mut archive =
+            zip::ZipArchive::new(file).map_err(|e| format!("Failed to read ZIP archive: {}", e))?;
 
         for i in 0..archive.len() {
-            let mut file = archive.by_index(i)
-                .map_err(|e| format!("Failed to access file in ZIP: {}", e))?;
+            let mut file =
+                archive.by_index(i).map_err(|e| format!("Failed to access file in ZIP: {}", e))?;
 
             let outpath = extract_to.join(file.name());
 
@@ -170,8 +170,7 @@ impl GoManager {
         let gz = flate2::read::GzDecoder::new(file);
         let mut tar = tar::Archive::new(gz);
 
-        tar.unpack(extract_to)
-            .map_err(|e| format!("Failed to extract TAR.GZ: {}", e))?;
+        tar.unpack(extract_to).map_err(|e| format!("Failed to extract TAR.GZ: {}", e))?;
 
         Ok(())
     }
@@ -208,13 +207,17 @@ impl GoManager {
             info!("Downloading Go {} from {}", version, download_url);
 
             let downloader = Downloader::new();
-            let file_size = downloader.get_file_size(&download_url).await
+            let file_size = downloader
+                .get_file_size(&download_url)
+                .await
                 .map_err(|e| anyhow::anyhow!("Failed to get file size: {}", e))?;
 
             let progress_reporter = ProgressReporter::new(file_size);
             progress_reporter.start();
 
-            downloader.download(&download_url, &archive_path, Some(progress_reporter)).await
+            downloader
+                .download(&download_url, &archive_path, Some(progress_reporter))
+                .await
                 .map_err(|e| anyhow::anyhow!("Download failed: {}", e))?;
         }
 
@@ -242,16 +245,15 @@ impl GoManager {
         let go_binary = version_dir.join("bin").join("go");
 
         if !go_binary.exists() {
-            return Err(anyhow::anyhow!("Go binary not found after extraction at {}", go_binary.display()));
+            return Err(anyhow::anyhow!(
+                "Go binary not found after extraction at {}",
+                go_binary.display()
+            ));
         }
 
         info!("Successfully installed Go version {}", version);
 
-        Ok(VersionInfo {
-            version: version.to_string(),
-            path: version_dir,
-            is_current: false,
-        })
+        Ok(VersionInfo { version: version.to_string(), path: version_dir, is_current: false })
     }
 
     /// Switch to a version
@@ -292,7 +294,10 @@ impl GoManager {
     }
 
     /// List installed versions
-    pub async fn list_installed(&self, request: ListInstalledRequest) -> anyhow::Result<VersionList> {
+    pub async fn list_installed(
+        &self,
+        request: ListInstalledRequest,
+    ) -> anyhow::Result<VersionList> {
         let base_dir = &request.base_dir;
         let mut versions = Vec::new();
 
@@ -303,8 +308,10 @@ impl GoManager {
         let current_version = self.get_current_version(base_dir);
 
         for entry in std::fs::read_dir(base_dir)
-            .map_err(|e| anyhow::anyhow!("Failed to read directory: {}", e))? {
-            let entry = entry.map_err(|e| anyhow::anyhow!("Failed to read directory entry: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to read directory: {}", e))?
+        {
+            let entry =
+                entry.map_err(|e| anyhow::anyhow!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
 
             if path.is_dir() && path.file_name().is_some() {
@@ -332,37 +339,19 @@ impl GoManager {
         // This is a simplified implementation
         // In a real implementation, you would fetch the list from Go's official API
         let versions = vec![
-            VersionInfo {
-                version: "1.21.3".to_string(),
-                path: PathBuf::new(),
-                is_current: false,
-            },
-            VersionInfo {
-                version: "1.21.2".to_string(),
-                path: PathBuf::new(),
-                is_current: false,
-            },
-            VersionInfo {
-                version: "1.21.1".to_string(),
-                path: PathBuf::new(),
-                is_current: false,
-            },
+            VersionInfo { version: "1.21.3".to_string(), path: PathBuf::new(), is_current: false },
+            VersionInfo { version: "1.21.2".to_string(), path: PathBuf::new(), is_current: false },
+            VersionInfo { version: "1.21.1".to_string(), path: PathBuf::new(), is_current: false },
         ];
 
         let total_count = versions.len();
-        Ok(VersionList {
-            versions,
-            total_count,
-        })
+        Ok(VersionList { versions, total_count })
     }
 
     /// Get status
     pub async fn status(&self, request: StatusRequest) -> anyhow::Result<RuntimeStatus> {
         let base_dir = request.base_dir.unwrap_or_else(|| {
-            dirs::home_dir()
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join(".gvm")
-                .join("versions")
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".gvm").join("versions")
         });
 
         let current_version = self.get_current_version(&base_dir);
@@ -372,7 +361,14 @@ impl GoManager {
             let version_path = base_dir.join(version);
             if version_path.exists() {
                 environment_vars.insert("GOROOT".to_string(), version_path.display().to_string());
-                environment_vars.insert("PATH".to_string(), format!("{};{}", version_path.join("bin").display(), std::env::var("PATH").unwrap_or_default()));
+                environment_vars.insert(
+                    "PATH".to_string(),
+                    format!(
+                        "{};{}",
+                        version_path.join("bin").display(),
+                        std::env::var("PATH").unwrap_or_default()
+                    ),
+                );
             }
         }
 

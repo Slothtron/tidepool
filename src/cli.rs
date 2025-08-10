@@ -1,5 +1,5 @@
-use clap::{Parser, Subcommand};
 use crate::{commands, config::Config};
+use clap::{Parser, Subcommand};
 
 /// Tidepool GVM - 高性能 Go 版本管理工具
 #[derive(Parser)]
@@ -46,26 +46,28 @@ pub enum Commands {
 impl Cli {
     pub async fn run(&self) -> anyhow::Result<()> {
         let config = Config::new()?;
-        
+
         match &self.command {
             Commands::Install { version, force } => {
                 commands::install(version, &config, *force).await
             }
             Commands::Switch { version } => {
-                commands::switch_to_existing_version(&crate::go::GoManager::new(), &crate::ui::UI::new(), crate::SwitchRequest { version: version.clone(), base_dir: config.versions().clone(), global: false, force: false }).await
+                commands::switch_to_existing_version(
+                    &crate::go::GoManager::new(),
+                    &crate::ui::UI::new(),
+                    crate::SwitchRequest {
+                        version: version.clone(),
+                        base_dir: config.versions().clone(),
+                        global: false,
+                        force: false,
+                    },
+                )
+                .await
             }
-            Commands::Uninstall { version } => {
-                commands::uninstall(version, &config).await
-            }
-            Commands::List => {
-                commands::list(false, &config).await
-            }
-            Commands::Status => {
-                commands::status(&config).await
-            }
-            Commands::Info { version } => {
-                commands::info(version, &config).await
-            }
+            Commands::Uninstall { version } => commands::uninstall(version, &config).await,
+            Commands::List => commands::list(false, &config).await,
+            Commands::Status => commands::status(&config).await,
+            Commands::Info { version } => commands::info(version, &config).await,
         }
     }
 }

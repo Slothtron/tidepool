@@ -1,11 +1,10 @@
 use crate::config::Config;
 use crate::ui::{Messages, UI};
+use crate::{
+    GoManager, InstallRequest, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
+};
 use anyhow::{Context, Result};
 use std::{fs, path::Path};
-use crate::{
-    GoManager, InstallRequest, ListInstalledRequest, StatusRequest, SwitchRequest,
-    UninstallRequest,
-};
 
 /// Install a Go version.
 ///
@@ -133,7 +132,9 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
         Ok(list) => {
             if list.versions.is_empty() {
                 ui.warning(&Messages::no_go_versions_found());
-                ui.info(&Messages::installation_directory_not_found(&base_dir.display().to_string()));
+                ui.info(&Messages::installation_directory_not_found(
+                    &base_dir.display().to_string(),
+                ));
                 ui.hint(&Messages::install_version_hint());
             } else {
                 ui.display_version_list(&list, &Messages::installed_go_versions());
@@ -143,7 +144,7 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
             ui.error(&Messages::error_listing_versions(&e.to_string()));
         }
     }
-    
+
     Ok(())
 }
 
@@ -215,7 +216,11 @@ pub async fn status(config: &Config) -> Result<()> {
             ui.newline();
             ui.header("Configuration");
             ui.kv_pair_colored("Base Directory", &base_dir.display().to_string(), "dimmed");
-            ui.kv_pair_colored("Versions Directory", &config.versions().display().to_string(), "dimmed");
+            ui.kv_pair_colored(
+                "Versions Directory",
+                &config.versions().display().to_string(),
+                "dimmed",
+            );
             ui.kv_pair_colored("Cache Directory", &config.cache().display().to_string(), "dimmed");
         }
         Err(e) => {

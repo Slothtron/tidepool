@@ -1,20 +1,20 @@
 //! Tidepool GVM - 高性能 Go 版本管理工具包
-//! 
+//!
 //! 这是一个用 Rust 编写的高性能 Go 版本管理工具，提供简单易用的命令行界面
 //! 来管理多个 Go 版本。
 
 pub mod cli;
 pub mod commands;
 pub mod config;
-pub mod ui;
-pub mod go;
 pub mod downloader;
+pub mod go;
 pub mod symlink;
+pub mod ui;
 
 // 重新导出主要类型
 pub use cli::Cli;
-pub use go::{GoManager, GoVersionInfo};
 pub use downloader::Downloader;
+pub use go::{GoManager, GoVersionInfo};
 
 // 公共类型定义
 use serde::{Deserialize, Serialize};

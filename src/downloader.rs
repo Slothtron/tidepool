@@ -13,7 +13,6 @@ use thiserror::Error;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
-
 /// 下载器错误类型
 #[derive(Error, Debug)]
 pub enum DownloadError {
@@ -181,7 +180,10 @@ impl Downloader {
         let (file_size, supports_range) = self.get_file_info(url).await?;
 
         // 根据文件大小和服务器支持情况选择下载方式
-        if file_size > self.config.min_chunk_size && supports_range && self.config.enable_chunked_download {
+        if file_size > self.config.min_chunk_size
+            && supports_range
+            && self.config.enable_chunked_download
+        {
             debug!("Using chunked download for file size: {}", file_size);
             // For now, fall back to single-threaded download
             self.download_single(url, output_path, progress_reporter).await
