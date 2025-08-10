@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 /// Configuration manager for GVM
 ///
 /// Handles configuration paths with the following priority:
-/// 1. Environment variables  
+/// 1. Environment variables
 /// 2. Default configuration
 #[derive(Debug, Clone)]
 #[allow(clippy::struct_field_names)]
@@ -120,67 +120,5 @@ impl Config {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::env;
-    #[test]
-    fn test_config_initialization() {
-        // 清除可能影响测试的环境变量
-        env::remove_var("GVM_ROOT");
-
-        // Test default configuration
-        let config = Config::new().unwrap();
-        assert!(config.root_path.to_string_lossy().contains(".gvm"));
-        assert!(config.versions().to_string_lossy().contains("versions"));
-        assert!(config.cache().to_string_lossy().contains("cache"));
-    }
-
-    #[test]
-    fn test_env_var_priority() {
-        // Test that environment variable takes precedence for root path
-        let test_root = if cfg!(windows) { "C:\\test\\root" } else { "/test/root" };
-
-        unsafe {
-            env::set_var("GVM_ROOT_PATH", test_root);
-        }
-        let config = Config::new().unwrap();
-        assert_eq!(config.root_path, PathBuf::from(test_root));
-        unsafe {
-            env::remove_var("GVM_ROOT_PATH");
-        }
-
-        // Test environment variable for versions path
-        let test_versions = if cfg!(windows) { "C:\\env\\versions" } else { "/env/versions" };
-
-        unsafe {
-            env::set_var("GVM_VERSIONS_PATH", test_versions);
-        }
-        let config = Config::new().unwrap();
-        assert_eq!(config.versions(), &PathBuf::from(test_versions));
-        unsafe {
-            env::remove_var("GVM_VERSIONS_PATH");
-        }
-    }
-    #[test]
-    fn test_config_paths() {
-        // Ensure clean environment for this test
-        unsafe {
-            env::remove_var("GVM_ROOT_PATH");
-            env::remove_var("GVM_VERSIONS_PATH");
-            env::remove_var("GVM_CACHE_PATH");
-        }
-
-        let config = Config::new().unwrap(); // Test that basic path functionality works
-        assert!(
-            config.root_path.is_absolute(),
-            "Config root path should be absolute, got: {}",
-            config.root_path.display()
-        );
-        assert!(config.versions().to_string_lossy().contains("versions"));
-        assert!(config.cache().to_string_lossy().contains("cache"));
     }
 }

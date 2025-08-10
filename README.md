@@ -12,8 +12,10 @@ A high-performance Go version management toolkit written in Rust, providing seam
 ## 🚀 Quick Start
 
 ```bash
-# Install the CLI tool
-cargo install tidepool-gvm
+# Install from source
+git clone https://github.com/Slothtron/tidepool.git
+cd tidepool
+cargo install --path .
 
 # Basic usage
 gvm install 1.21.3    # Install Go version
@@ -22,32 +24,34 @@ gvm status            # Show current version
 gvm --help            # Show all commands
 ```
 
-For detailed installation options and complete usage guide, see [CLI Documentation](cli/tidepool-gvm/README.md).
-
 ## 📁 Project Structure
 
 ```
 tidepool/
-├── crates/
-│   └── tidepool-version-manager/   # Core Go version management library
-└── cli/
-    └── tidepool-gvm/              # CLI tool (binary: gvm)
+├── src/
+│   ├── main.rs                   # CLI entry point
+│   ├── lib.rs                    # Library entry point
+│   ├── cli.rs                    # CLI command parsing
+│   ├── commands.rs               # Command implementations
+│   ├── config.rs                 # Configuration management
+│   ├── ui.rs                     # User interface
+│   ├── go.rs                     # Go version management core
+│   ├── downloader.rs             # Downloader
+│   └── symlink.rs                # Symbolic link handling
+├── README.md                     # Documentation
+├── README.zh-CN.md              # Chinese documentation
+├── Cargo.toml                    # Package configuration
+└── .github/                      # GitHub workflows
 ```
-
-### Components
-
-| Component | Description | Documentation |
-|-----------|-------------|---------------|
-| **[tidepool-version-manager](crates/tidepool-version-manager/)** | Core library providing Go version management functionality | [📖 Library Documentation](crates/tidepool-version-manager/README.md) |
-| **[tidepool-gvm](cli/tidepool-gvm/)** | Command-line interface tool (installs as `gvm` command) | [📖 CLI Documentation](cli/tidepool-gvm/README.md) |
 
 ## ✨ Key Features
 
 - **🌐 Multi-Platform Support**: Windows, macOS, and Linux
-- **⚡ High Performance**: Asynchronous concurrent downloads with progress display  
+- **⚡ High Performance**: Asynchronous concurrent downloads with progress display
 - **🔧 Complete Management**: Install, switch, and uninstall Go versions
 - **🛡️ Safety First**: SHA256 verification and protection against accidental deletion
 - **⚙️ Smart Environment**: Automatic GOROOT, GOPATH, and PATH configuration
+- **📦 Simple Architecture**: Single crate design for easy maintenance
 
 ## 🔧 Development
 
@@ -57,23 +61,33 @@ tidepool/
 git clone https://github.com/Slothtron/tidepool.git
 cd tidepool
 
-# Build all components
+# Build the project
 cargo build --release
 
-# Run tests  
+# Run tests
 cargo test
 
-# Build specific component
-cargo build --release --package tidepool-gvm
+# Run with debug logging
+RUST_LOG=debug cargo run -- install 1.21.3
 ```
 
 ### System Requirements
 
-- **Rust**: 1.70+ 
+- **Rust**: 1.70+
 - **Network**: Internet connection for downloading Go versions
 - **Platforms**: Windows 10+, macOS 10.15+, Linux (x86_64, ARM64)
 
-For detailed development setup and contribution guidelines, see individual component documentation.
+### Build for Different Platforms
+
+```bash
+# Build for current platform
+cargo build --release
+
+# Cross-compile (requires target toolchain)
+cargo build --release --target x86_64-unknown-linux-gnu
+cargo build --release --target aarch64-apple-darwin
+cargo build --release --target x86_64-pc-windows-msvc
+```
 
 ## 📄 License
 
@@ -82,4 +96,3 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-

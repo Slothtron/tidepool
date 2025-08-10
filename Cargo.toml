@@ -1,17 +1,19 @@
 
-[workspace]
-resolver = "2"
-members = ["crates/tidepool-version-manager", "cli/tidepool-gvm"]
-
-[workspace.package]
+[package]
+name = "tidepool-gvm"
 version = "0.1.5"
 edition = "2021"
 rust-version = "1.70.0"
 authors = ["Slothtron"]
 license = "MIT"
 repository = "https://github.com/Slothtron/tidepool"
+description = "A high-performance Go version management toolkit (GVM) written in Rust"
 
-[workspace.dependencies]
+[[bin]]
+name = "gvm"
+path = "src/main.rs"
+
+[dependencies]
 anyhow = "1.0"
 indicatif = "0.17"
 dirs = "5.0"
@@ -26,23 +28,30 @@ async-trait = "0.1"
 log = "0.4"
 env_logger = "0.10"
 tempfile = "3.5.0"
+sha2 = "0.10"
 
-[workspace.dependencies.tokio]
-version = "1.0"
-features = ["full"]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11", default-features = false, features = [
+    "stream",
+    "blocking",
+    "json",
+    "rustls-tls",
+] }
+clap = { version = "4.0", features = ["derive"] }
 
-[workspace.dependencies.serde]
-version = "1.0"
-features = ["derive"]
+# Windows-specific dependencies
+[target.'cfg(target_os = "windows")'.dependencies]
+junction = "1.2.0"
 
-[workspace.dependencies.reqwest]
-version = "0.11"
-default-features = false
-features = ["stream", "blocking", "json", "rustls-tls"]
+# Unix-specific dependencies
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+flate2 = "1.0"
+tar = "0.4"
 
-[workspace.dependencies.clap]
-version = "4.0"
-features = ["derive"]
+[dev-dependencies]
+tempfile = "3.5.0"
+tokio = { version = "1.0", features = ["macros", "rt"] }
 
 [profile.release]
 lto = true

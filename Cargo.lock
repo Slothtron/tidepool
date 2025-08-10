@@ -1579,21 +1579,12 @@ name = "tidepool-gvm"
 version = "0.1.5"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "bytes",
  "clap",
  "console",
  "dirs",
  "env_logger",
- "indicatif",
- "tidepool-version-manager",
- "tokio",
-]
-
-[[package]]
-name = "tidepool-version-manager"
-version = "0.1.5"
-dependencies = [
- "async-trait",
- "bytes",
  "flate2",
  "futures",
  "indicatif",
