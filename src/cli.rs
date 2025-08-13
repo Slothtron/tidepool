@@ -69,7 +69,7 @@ impl Cli {
                 .await
             }
             Commands::Uninstall { version } => commands::uninstall(version, &config).await,
-            Commands::List => commands::list(false, &config).await,
+            Commands::List => commands::list(&config, false).await,
             Commands::Status => commands::status(&config).await,
             Commands::Info { version } => commands::info(version, &config).await,
         }

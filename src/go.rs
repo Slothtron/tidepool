@@ -1,7 +1,8 @@
 // Go version management module
 use crate::{
-    downloader::{Downloader, ProgressReporter},
+    downloader::Downloader,
     symlink::{get_symlink_target, is_symlink, remove_symlink_dir, symlink_dir},
+    ui::ProgressManager,
     InstallRequest, ListInstalledRequest, RuntimeStatus, StatusRequest, SwitchRequest,
     UninstallRequest, VersionInfo, VersionList,
 };
@@ -212,11 +213,11 @@ impl GoManager {
                 .await
                 .map_err(|e| anyhow::anyhow!("Failed to get file size: {}", e))?;
 
-            let progress_reporter = ProgressReporter::new(file_size);
-            progress_reporter.start();
+            let progress_manager = ProgressManager::new();
+            let progress_bar = progress_manager.new_download_bar(file_size);
 
             downloader
-                .download(&download_url, &archive_path, Some(progress_reporter))
+                .download(&download_url, &archive_path, Some(progress_bar))
                 .await
                 .map_err(|e| anyhow::anyhow!("Download failed: {}", e))?;
         }

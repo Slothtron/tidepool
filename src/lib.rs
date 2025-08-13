@@ -8,6 +8,7 @@ pub mod commands;
 pub mod config;
 pub mod downloader;
 pub mod go;
+pub mod progress;
 pub mod symlink;
 pub mod ui;
 

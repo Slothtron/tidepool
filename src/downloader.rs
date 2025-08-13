@@ -54,12 +54,14 @@ impl ProgressReporter {
     #[must_use]
     pub fn new(total_size: u64) -> Self {
         let progress_bar = ProgressBar::new(total_size);
+        let total_formatted = format_file_size(total_size);
         progress_bar.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                .template("{spinner:.green} {msg}")
                 .unwrap()
                 .progress_chars("#>-"),
         );
+        progress_bar.set_message(format!("0% (0/{})", total_formatted));
 
         Self { progress_bar }
     }
@@ -72,6 +74,16 @@ impl ProgressReporter {
     /// 更新进度
     pub fn update(&self, bytes_downloaded: u64) {
         self.progress_bar.set_position(bytes_downloaded);
+
+        // Update message with percentage and formatted sizes
+        let total = self.progress_bar.length().unwrap_or(0);
+        if total > 0 {
+            let current_formatted = format_file_size(bytes_downloaded);
+            let total_formatted = format_file_size(total);
+            let percent = (bytes_downloaded * 100) / total;
+            self.progress_bar
+                .set_message(format!("{}% ({}/{})", percent, current_formatted, total_formatted));
+        }
     }
 
     /// 增加进度
@@ -171,7 +183,7 @@ impl Downloader {
         &self,
         url: &str,
         output_path: P,
-        progress_reporter: Option<ProgressReporter>,
+        progress_bar: Option<indicatif::ProgressBar>,
     ) -> DownloadResult<()> {
         let output_path = output_path.as_ref();
         debug!("Starting download: {} -> {}", url, output_path.display());
@@ -186,10 +198,10 @@ impl Downloader {
         {
             debug!("Using chunked download for file size: {}", file_size);
             // For now, fall back to single-threaded download
-            self.download_single(url, output_path, progress_reporter).await
+            self.download_single(url, output_path, progress_bar).await
         } else {
             debug!("Using single-threaded download for file size: {}", file_size);
-            self.download_single(url, output_path, progress_reporter).await
+            self.download_single(url, output_path, progress_bar).await
         }
     }
 
@@ -219,7 +231,7 @@ impl Downloader {
         &self,
         url: &str,
         output_path: P,
-        progress_reporter: Option<ProgressReporter>,
+        progress_bar: Option<indicatif::ProgressBar>,
     ) -> DownloadResult<()> {
         let output_path = output_path.as_ref();
 
@@ -238,13 +250,24 @@ impl Downloader {
             file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
 
-            if let Some(ref progress) = progress_reporter {
-                progress.update(downloaded);
+            if let Some(ref progress) = progress_bar {
+                progress.set_position(downloaded);
+                // Update message with percentage and formatted sizes
+                let total = progress.length().unwrap_or(0);
+                if total > 0 {
+                    let current_formatted = format_file_size(downloaded);
+                    let total_formatted = format_file_size(total);
+                    let percent = (downloaded * 100) / total;
+                    progress.set_message(format!(
+                        "{}% ({}/{})",
+                        percent, current_formatted, total_formatted
+                    ));
+                }
             }
         }
 
-        if let Some(ref progress) = progress_reporter {
-            progress.finish();
+        if let Some(ref progress) = progress_bar {
+            progress.finish_with_message("Download completed");
         }
 
         info!("Download completed: {} bytes", downloaded);
@@ -255,6 +278,24 @@ impl Downloader {
     pub async fn get_file_size(&self, url: &str) -> DownloadResult<u64> {
         let (size, _) = self.get_file_info(url).await?;
         Ok(size)
+    }
+}
+
+/// Helper function to format file sizes in human-readable format
+fn format_file_size(bytes: u64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
+    let mut value = bytes as f64;
+    let mut unit_index = 0;
+
+    while value >= 1024.0 && unit_index < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit_index += 1;
+    }
+
+    if unit_index == 0 {
+        format!("{} {}", bytes, UNITS[unit_index])
+    } else {
+        format!("{:.1} {}", value, UNITS[unit_index])
     }
 }
 

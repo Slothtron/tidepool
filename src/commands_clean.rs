@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::progress::install_with_fallback;
-use crate::ui::{Messages, UI};
+use crate::ui::{Messages, ProgressManager, UI};
 use crate::{
-    GoManager, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
+    GoManager, InstallRequest, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
 };
 use anyhow::Result;
 
@@ -25,7 +25,7 @@ pub fn list_installed(config: &Config) -> Result<Vec<String>> {
     if let Ok(entries) = std::fs::read_dir(base_dir) {
         for entry in entries.flatten() {
             if let Some(name) = entry.file_name().to_str() {
-                if entry.path().is_dir() && !name.starts_with('.') && name != "current" {
+                if entry.path().is_dir() && !name.starts_with('.') {
                     versions.push(name.to_string());
                 }
             }
@@ -45,24 +45,22 @@ pub async fn uninstall(version: &str, config: &Config) -> Result<()> {
     let manager = GoManager::new();
     let base_dir = config.versions();
 
-    println!("{}", Messages::uninstalling_go(version));
+    let uninstall_request = UninstallRequest {
+        version: version.to_string(),
+        base_dir: base_dir.clone(),
+    };
 
-    let uninstall_request =
-        UninstallRequest { version: version.to_string(), base_dir: base_dir.clone() };
+    ui.spinner(&format!("Uninstalling Go {version}"));
 
-    match manager.uninstall(uninstall_request).await {
-        Ok(()) => {
-            ui.success(&Messages::go_uninstalled_successfully(version));
+    match manager.uninstall_with_request(&uninstall_request).await {
+        Ok(_) => {
+            ui.success(&format!("Successfully uninstalled Go {version}"));
         }
         Err(e) => {
-            if e.to_string().contains("not installed") {
-                ui.warning(&Messages::go_not_installed(version));
-            } else if e.to_string().contains("currently active") {
-                ui.error(&Messages::cannot_uninstall_current_version(version));
-                ui.info(&Messages::clear_current_symlink_hint());
-            } else {
-                ui.error(&Messages::uninstall_failed(version, &e.to_string()));
-            }
+            ui.display_error_with_suggestion(
+                &format!("Failed to uninstall Go {}: {}", version, e),
+                "Check if the version is currently in use or if you have proper permissions",
+            );
         }
     }
 
@@ -85,7 +83,9 @@ pub async fn switch(version: &str, config: &Config, global: bool, force: bool) -
         force,
     };
 
-    match manager.switch_to(switch_request).await {
+    ui.spinner(&format!("Switching to Go {version}"));
+
+    match manager.switch_with_request(&switch_request).await {
         Ok(_) => {
             ui.success(&format!(
                 "Switched to Go {version} {}",
@@ -112,36 +112,11 @@ pub async fn status(config: &Config) -> Result<()> {
     let manager = GoManager::new();
     let base_dir = config.versions();
 
-    let status_request = StatusRequest { base_dir: Some(base_dir.clone()) };
+    let status_request = StatusRequest { base_dir };
 
-    match manager.status(status_request).await {
+    match manager.status_with_request(&status_request).await {
         Ok(status) => {
-            ui.header("📊 Go Version Manager Status");
-
-            // Current version
-            if let Some(current_version) = status.current_version {
-                ui.success(&format!("Current version: {}", current_version));
-            } else {
-                ui.warning("No version currently active");
-            }
-
-            // Installation path
-            if let Some(install_path) = status.install_path {
-                ui.kv_pair_colored("Install Path", &install_path.display().to_string(), "dimmed");
-            }
-
-            // Environment variables
-            ui.newline();
-            ui.header("Environment Variables");
-            for (key, value) in status.environment_vars {
-                ui.kv_pair_colored(&key, &value, "cyan");
-            }
-
-            // Link information
-            if let Some(link_info) = status.link_info {
-                ui.newline();
-                ui.kv_pair_colored("Symlink Info", &link_info, "yellow");
-            }
+            ui.display_status(&status);
         }
         Err(e) => {
             ui.display_error_with_suggestion(
@@ -181,13 +156,15 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
                 ui.info(&Messages::installation_directory_not_found(
                     &base_dir.display().to_string(),
                 ));
-                ui.hint(&Messages::install_version_hint());
             } else {
-                ui.display_version_list(&list, &Messages::installed_go_versions());
+                ui.display_version_list(&list);
             }
         }
         Err(e) => {
-            ui.error(&Messages::error_listing_versions(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &format!("Failed to list installed versions: {}", e),
+                "Check if the installation directory exists and is accessible",
+            );
         }
     }
 
@@ -197,20 +174,21 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
 /// List available Go versions from remote.
 async fn list_available_versions() -> Result<()> {
     let ui = UI::new();
-    let manager = GoManager::new();
+    let progress = ProgressManager::new();
+    
+    progress.start("Fetching available Go versions");
 
-    match manager.list_available().await {
-        Ok(list) => {
-            if list.versions.is_empty() {
-                ui.warning(&Messages::no_go_versions_found());
-            } else {
-                ui.display_version_list(&list, &Messages::available_go_versions());
-            }
-            ui.info(&Messages::visit_go_website());
-            ui.hint(&Messages::install_with_hint());
+    match crate::go::list_available_versions().await {
+        Ok(versions) => {
+            progress.finish();
+            ui.display_available_versions(&versions);
         }
         Err(e) => {
-            ui.error(&Messages::error_getting_available_versions(&e.to_string()));
+            progress.fail();
+            ui.display_error_with_suggestion(
+                &format!("Failed to fetch available versions: {}", e),
+                "Check your internet connection",
+            );
         }
     }
 
@@ -236,25 +214,6 @@ pub async fn info(version: &str, config: &Config) -> Result<()> {
                 &format!("Failed to get information for Go {}: {}", version, e),
                 "Make sure the version exists and is accessible",
             );
-        }
-    }
-
-    Ok(())
-}
-
-/// Switch to an existing version.
-pub async fn switch_to_existing_version(
-    manager: &GoManager,
-    ui: &UI,
-    switch_request: SwitchRequest,
-) -> Result<()> {
-    let version = switch_request.version.clone();
-    match manager.switch_to(switch_request).await {
-        Ok(()) => {
-            ui.success(&Messages::switched_to_go_successfully(&version));
-        }
-        Err(e) => {
-            ui.error(&Messages::switch_failed(&e.to_string()));
         }
     }
 

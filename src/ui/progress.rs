@@ -8,7 +8,6 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::sync::Arc;
 use std::time::Duration;
 
-
 /// Progress manager that coordinates multiple progress indicators
 pub struct ProgressManager {
     multi_progress: Arc<MultiProgress>,
@@ -17,21 +16,21 @@ pub struct ProgressManager {
 impl ProgressManager {
     /// Create a new progress manager
     pub fn new() -> Self {
-        Self {
-            multi_progress: Arc::new(MultiProgress::new()),
-        }
+        Self { multi_progress: Arc::new(MultiProgress::new()) }
     }
 
-    /// Create a download progress bar with speed and ETA display
+    /// Create a download progress bar with percentage and formatted size display
     pub fn new_download_bar(&self, total_size: u64) -> ProgressBar {
         let bar = self.multi_progress.add(ProgressBar::new(total_size));
         bar.set_style(
             ProgressStyle::default_bar()
-                .template("{msg} {spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                .template("{spinner:.green} {msg}")
                 .unwrap()
-                .progress_chars("█▉▊▋▌▍▎▏ ")
+                .progress_chars("█▉▊▋▌▍▎▏ "),
         );
-        bar.set_message("Downloading");
+
+        let total_formatted = format_file_size(total_size);
+        bar.set_message(format!("0% (0/{total_formatted})"));
         bar.enable_steady_tick(Duration::from_millis(100));
         bar
     }
@@ -41,9 +40,11 @@ impl ProgressManager {
         let bar = self.multi_progress.add(ProgressBar::new(total_steps));
         bar.set_style(
             ProgressStyle::default_bar()
-                .template("{msg} {spinner:.green} [{elapsed_precise}] [{bar:30.cyan/blue}] {pos}/{len}")
+                .template(
+                    "{msg} {spinner:.green} [{elapsed_precise}] [{bar:30.cyan/blue}] {pos}/{len}",
+                )
                 .unwrap()
-                .progress_chars("█▉▊▋▌▍▎▏ ")
+                .progress_chars("█▉▊▋▌▍▎▏ "),
         );
         bar.set_message("Installing");
         bar
@@ -56,7 +57,7 @@ impl ProgressManager {
             ProgressStyle::default_spinner()
                 .template("{spinner:.green} {msg}")
                 .unwrap()
-                .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+                .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
         );
         spinner.set_message(message.to_string());
         spinner.enable_steady_tick(Duration::from_millis(80));
@@ -112,6 +113,15 @@ impl ProgressReporter {
             self.progress_bar.set_length(total);
         }
         self.progress_bar.set_position(current);
+
+        // Update the message to show formatted sizes with percentage
+        if total > 0 {
+            let current_formatted = format_file_size(current);
+            let total_formatted = format_file_size(total);
+            let percent = (current * 100) / total;
+            self.progress_bar
+                .set_message(format!("{}% ({}/{})", percent, current_formatted, total_formatted));
+        }
     }
 
     /// Update progress with speed information
@@ -150,6 +160,24 @@ impl ProgressReporter {
     /// Set progress to specific position
     pub fn set_position(&self, position: u64) {
         self.progress_bar.set_position(position);
+    }
+}
+
+/// Helper function to format file sizes in human-readable format
+fn format_file_size(bytes: u64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
+    let mut value = bytes as f64;
+    let mut unit_index = 0;
+
+    while value >= 1024.0 && unit_index < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit_index += 1;
+    }
+
+    if unit_index == 0 {
+        format!("{} {}", bytes, UNITS[unit_index])
+    } else {
+        format!("{:.1} {}", value, UNITS[unit_index])
     }
 }
 

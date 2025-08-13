@@ -392,7 +392,6 @@ impl UI {
         // Basic information section
         self.kv_pair("Version", &info.version);
         self.kv_pair("Platform", &format!("{}-{}", info.os, info.arch));
-        self.kv_pair("Archive", &info.filename);
 
         // File size
         if let Some(size) = info.size {
@@ -401,33 +400,15 @@ impl UI {
             self.kv_pair("Size", &format!("{size_mb:.1} MB"));
         }
 
-        self.separator();
-
         // Status section
-        println!("  {}", style("Status:").dim().bold());
-
         if info.is_installed {
-            println!("    {} {}", style(Icons::check()).green(), style("Installed").green());
-            if let Some(ref path) = info.install_path {
-                println!("    {} {}", style("📁").dim(), style(path.display().to_string()).dim());
-            }
+            self.success("Status: Installed");
         } else {
-            println!("    {} {}", style(Icons::cross()).red(), style("Not installed").red());
+            self.warning("Status: Not installed");
         }
 
         if info.is_cached {
-            println!("    {} {}", style(Icons::check()).green(), style("Cached").green());
-        } else {
-            println!("    {} {}", style(Icons::cross()).yellow(), style("Not cached").yellow());
-        }
-
-        self.separator();
-
-        // Security information
-        if let Some(ref sha256) = info.sha256 {
-            self.kv_pair_colored("SHA256", sha256, "dimmed");
-        } else {
-            self.warning("SHA256 verification not available for this version");
+            self.info("Cached: Yes");
         }
 
         self.newline();
@@ -435,7 +416,6 @@ impl UI {
         // Action suggestions
         if info.is_installed {
             self.suggest(&format!("Use this version: gvm use {}", info.version));
-            self.hint(&format!("Remove this version: gvm uninstall {}", info.version));
         } else {
             self.suggest(&format!("Install this version: gvm install {}", info.version));
         }
@@ -445,10 +425,10 @@ impl UI {
     pub fn display_status(
         &self,
         status: &crate::RuntimeStatus,
-        base_dir: &std::path::Path,
+        _base_dir: &std::path::Path,
         config: &crate::config::Config,
     ) {
-        self.banner("Go Version Manager Status");
+        self.header("Go Version Status");
 
         // Current version section
         if let Some(ref current_version) = status.current_version {
@@ -461,32 +441,12 @@ impl UI {
             self.kv_pair_colored("Go Root", &install_path.display().to_string(), "cyan");
         }
 
-        self.separator();
-
-        // Environment section
-        self.header("Environment Variables");
-        for (key, value) in &status.environment_vars {
-            self.kv_pair(key, value);
-        }
-
-        self.separator();
-
-        // Configuration section
-        self.header("Configuration");
-        self.kv_pair_colored("Base Directory", &base_dir.display().to_string(), "dimmed");
+        // Only show essential configuration
         self.kv_pair_colored(
             "Versions Directory",
             &config.versions().display().to_string(),
             "dimmed",
         );
-        self.kv_pair_colored("Cache Directory", &config.cache().display().to_string(), "dimmed");
-
-        // Link information
-        if let Some(ref link_info) = status.link_info {
-            self.separator();
-            self.header("Symlink Information");
-            self.info(link_info);
-        }
 
         self.newline();
         self.suggest("List available versions: gvm list");

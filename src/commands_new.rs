@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::progress::install_with_fallback;
 use crate::ui::{Messages, UI};
 use crate::{
-    GoManager, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
+    GoManager, InstallRequest, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
 };
 use anyhow::Result;
 
