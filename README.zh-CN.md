@@ -17,10 +17,14 @@ git clone https://github.com/Slothtron/tidepool.git
 cd tidepool
 cargo install --path .
 
+```bash
 # 基本用法
 gvm install 1.21.3    # 安装 Go 版本
 gvm list              # 列出已安装版本
 gvm status            # 显示当前版本
+gvm use 1.21.3        # 切换到指定版本的 Go
+gvm uninstall 1.21.3  # 卸载指定版本的 Go
+gvm info 1.21.3       # 显示指定版本的详细信息
 gvm --help            # 显示所有命令
 ```
 
@@ -28,20 +32,22 @@ gvm --help            # 显示所有命令
 
 ```
 tidepool/
-├── src/
-│   ├── main.rs                   # CLI 入口点
-│   ├── lib.rs                    # 库入口点
-│   ├── cli.rs                    # CLI 命令解析
-│   ├── commands.rs               # 命令实现
-│   ├── config.rs                 # 配置管理
-│   ├── ui.rs                     # 用户界面
-│   ├── go.rs                     # Go 版本管理核心
-│   ├── downloader.rs             # 下载器
-│   └── symlink.rs                # 符号链接处理
-├── README.md                     # 文档
+├── src/                         # 源代码目录
+│   ├── main.rs                  # CLI 入口点
+│   ├── lib.rs                   # 库入口点
+│   ├── cli.rs                   # CLI 命令解析
+│   ├── commands.rs              # 命令实现
+│   ├── config.rs                # 配置管理
+│   ├── ui.rs                    # 用户界面
+│   ├── go.rs                    # Go 版本管理核心逻辑
+│   ├── downloader.rs            # 下载器模块
+│   └── symlink.rs               # 符号链接处理
+├── README.md                    # 英文文档
 ├── README.zh-CN.md              # 中文文档
-├── Cargo.toml                    # 包配置
-└── .github/                      # GitHub 工作流
+├── Cargo.toml                   # Rust 包配置文件
+├── Cargo.lock                   # 锁定依赖版本
+├── .github/                     # GitHub 工作流配置
+└── rustfmt.toml                 # Rust 格式化配置
 ```
 
 ## ✨ 核心特性

@@ -17,19 +17,22 @@ pub enum Commands {
     /// 安装指定版本的 Go
     Install {
         /// Go 版本号 (例如: 1.21.3)
+        #[arg(name = "go-version")]
         version: String,
         /// 强制重新安装
         #[arg(short, long)]
         force: bool,
     },
     /// 切换到指定版本的 Go
-    Switch {
+    Use {
         /// Go 版本号 (例如: 1.21.3)
+        #[arg(name = "go-version")]
         version: String,
     },
     /// 卸载指定版本的 Go
     Uninstall {
         /// Go 版本号 (例如: 1.21.3)
+        #[arg(name = "go-version")]
         version: String,
     },
     /// 列出已安装的 Go 版本
@@ -39,6 +42,7 @@ pub enum Commands {
     /// 显示指定版本的详细信息
     Info {
         /// Go 版本号 (例如: 1.21.3)
+        #[arg(name = "go-version")]
         version: String,
     },
 }
@@ -51,7 +55,7 @@ impl Cli {
             Commands::Install { version, force } => {
                 commands::install(version, &config, *force).await
             }
-            Commands::Switch { version } => {
+            Commands::Use { version } => {
                 commands::switch_to_existing_version(
                     &crate::go::GoManager::new(),
                     &crate::ui::UI::new(),

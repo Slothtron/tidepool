@@ -1,137 +1,147 @@
-# Tidepool 项目结构
+tidepool-gvm\PROJECT_STRUCTURE.md
+```
 
-## 概述
+```
+# Project Architecture
 
-Tidepool 是一个用 Rust 编写的高性能 Go 版本管理工具包。项目采用单一 crate 设计，简化了架构，提高了可维护性。
+This document provides an overview of the architecture of the Tidepool project, a high-performance Go version management toolkit written in Rust.
 
-## 目录结构
+---
+
+## Project Structure
 
 ```
 tidepool/
-├── src/                          # 源代码目录
-│   ├── main.rs                   # CLI 入口点
-│   ├── lib.rs                    # 库入口点
-│   ├── cli.rs                    # CLI 命令解析
-│   ├── commands.rs               # 命令实现
-│   ├── config.rs                 # 配置管理
-│   ├── ui.rs                     # 用户界面
-│   ├── go.rs                     # Go 版本管理核心
-│   ├── downloader.rs             # 下载器
-│   └── symlink.rs                # 符号链接处理
-├── README.md                     # 英文文档
-├── README.zh-CN.md              # 中文文档
-├── Cargo.toml                    # 包配置
-├── Cargo.lock                    # 依赖锁定文件
-├── rustfmt.toml                  # Rust 格式化配置
-├── .gitignore                    # Git 忽略文件
-└── .github/                      # GitHub 工作流
+├── src/                         # Source code directory
+│   ├── main.rs                  # CLI entry point
+│   ├── lib.rs                   # Library entry point
+│   ├── cli.rs                   # CLI command parsing
+│   ├── commands.rs              # Command implementations
+│   ├── config.rs                # Configuration management
+│   ├── ui.rs                    # User interface
+│   ├── go.rs                    # Go version management core
+│   ├── downloader.rs            # Downloader module
+│   └── symlink.rs               # Symbolic link handling
+├── README.md                    # English documentation
+├── README.zh-CN.md              # Chinese documentation
+├── Cargo.toml                   # Rust package configuration
+├── Cargo.lock                   # Locked dependency versions
+├── .github/                     # GitHub workflows
+└── rustfmt.toml                 # Rust formatting configuration
 ```
 
-## 模块说明
+---
 
-### 核心模块
+## Core Modules
 
-- **`main.rs`**: CLI 应用程序入口点
-- **`lib.rs`**: 库模块定义和公共 API
-- **`cli.rs`**: 命令行参数解析和命令分发
-- **`commands.rs`**: 具体命令的实现逻辑
-- **`config.rs`**: 配置管理和环境变量处理
-- **`ui.rs`**: 用户界面和消息显示
+### CLI Module
+- **Files**: `src/main.rs`, `src/cli.rs`
+- **Responsibilities**:
+  - Provide a command-line interface for users.
+  - Parse user commands and arguments.
+  - Delegate tasks to the appropriate command implementation.
 
-### 功能模块
+### Command Implementation Module
+- **File**: `src/commands.rs`
+- **Responsibilities**:
+  - Implement the logic for commands such as `install`, `list`, and `status`.
+  - Handle Go version installation, switching, and management.
 
-- **`go.rs`**: Go 版本管理的核心逻辑
-  - 版本安装、切换、卸载
-  - 版本信息获取和验证
-  - 环境变量配置
+### Configuration Management Module
+- **File**: `src/config.rs`
+- **Responsibilities**:
+  - Manage user configuration files and environment variables.
+  - Automatically configure GOROOT, GOPATH, and PATH.
 
-- **`downloader.rs`**: 文件下载功能
-  - 异步并发下载
-  - 进度显示
-  - 断点续传支持
-  - SHA256 校验
+### Go Version Management Core
+- **File**: `src/go.rs`
+- **Responsibilities**:
+  - Core logic for managing Go versions.
+  - Download and install specific Go versions.
+  - Verify file integrity using SHA256 checksums.
 
-- **`symlink.rs`**: 跨平台符号链接处理
-  - Windows 和 Unix 系统兼容
-  - 符号链接创建和删除
-  - 链接状态检查
+### Downloader Module
+- **File**: `src/downloader.rs`
+- **Responsibilities**:
+  - Handle file downloads with asynchronous concurrency.
+  - Display download progress to the user.
 
-## 设计原则
+### Symbolic Link Handling Module
+- **File**: `src/symlink.rs`
+- **Responsibilities**:
+  - Create and manage symbolic links across platforms.
 
-### 1. 单一职责
-每个模块专注于特定功能，职责明确。
+### User Interface Module
+- **File**: `src/ui.rs`
+- **Responsibilities**:
+  - Provide user-friendly output and error messages.
+  - Display command execution results.
 
-### 2. 跨平台兼容
-所有平台相关代码都通过条件编译处理。
+---
 
-### 3. 错误处理
-使用 `anyhow` 和 `thiserror` 进行统一的错误处理。
+## Dependencies
 
-### 4. 异步优先
-充分利用 Rust 的异步特性，提高性能。
+The project uses several high-quality Rust libraries to achieve its functionality:
+- **Command-line Parsing**: `clap`
+- **Asynchronous Runtime**: `tokio`
+- **HTTP Requests**: `reqwest`
+- **JSON Handling**: `serde_json`
+- **Error Handling**: `anyhow`, `thiserror`
+- **File Operations**: `tempfile`, `dirs`
+- **Logging**: `log`, `env_logger`
+- **Download Progress**: `indicatif`
 
-### 5. 用户友好
-提供清晰的错误信息和进度反馈。
+---
 
-## 构建和运行
+## Cross-Platform Support
 
-### 开发环境
-```bash
-# 克隆项目
-git clone https://github.com/Slothtron/tidepool.git
-cd tidepool
+The project supports multiple platforms with conditional compilation:
+- **Windows**: Uses the `junction` library for symbolic link handling.
+- **Unix**: Uses `flate2` and `tar` libraries for handling compressed files.
 
-# 构建项目
-cargo build --release
+---
 
-# 运行测试
-cargo test
+## Performance Optimizations
 
-# 安装到系统
-cargo install --path .
-```
+- **Asynchronous Concurrency**: Utilizes `tokio` and `reqwest` for high-performance asynchronous downloads.
+- **Compilation Optimizations**: Configured in `Cargo.toml` with options like `lto`, `codegen-units`, and `opt-level` to reduce binary size and improve runtime performance.
 
-### 跨平台构建
-```bash
-# 构建当前平台
-cargo build --release
+---
 
-# 交叉编译
-cargo build --release --target x86_64-unknown-linux-gnu
-cargo build --release --target aarch64-apple-darwin
-cargo build --release --target x86_64-pc-windows-msvc
-```
+## Development and Testing
 
-## 配置
+### Quick Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Slothtron/tidepool.git
+   cd tidepool
+   ```
 
-项目支持通过环境变量进行配置：
+2. Build the project:
+   ```bash
+   cargo build --release
+   ```
 
-- `GVM_ROOT_PATH`: 根目录路径
-- `GVM_VERSIONS_PATH`: 版本安装目录
-- `GVM_CACHE_PATH`: 缓存目录
-- `RUST_LOG`: 日志级别
+3. Run tests:
+   ```bash
+   cargo test
+   ```
 
-## 扩展性
+4. Enable debug logging:
+   ```bash
+   RUST_LOG=debug cargo run -- install 1.21.3
+   ```
 
-项目设计考虑了未来的扩展性：
+---
 
-1. **多语言支持**: 可以轻松添加其他语言的版本管理
-2. **插件系统**: 支持自定义下载器和存储后端
-3. **配置扩展**: 支持更多配置选项和自定义规则
+## Key Features
 
-## 维护
+- **Multi-Platform Support**: Compatible with Windows, macOS, and Linux.
+- **High Performance**: Asynchronous concurrent downloads with progress display.
+- **Complete Management**: Install, switch, and uninstall Go versions.
+- **Safety**: SHA256 verification and protection against accidental deletion.
+- **Smart Environment Configuration**: Automatic setup of GOROOT, GOPATH, and PATH.
 
-### 代码质量
-- 使用 `rustfmt` 进行代码格式化
-- 遵循 Rust 编码规范
-- 完整的错误处理和文档注释
+---
 
-### 测试
-- 单元测试覆盖核心功能
-- 集成测试验证完整流程
-- 跨平台兼容性测试
-
-### 发布
-- 使用 GitHub Actions 进行自动化构建和发布
-- 支持多平台二进制文件发布
-- 版本管理和变更日志维护
+This document serves as a reference for understanding the architecture and design of the Tidepool project. Contributions and improvements are welcome!

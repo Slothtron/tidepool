@@ -16,12 +16,13 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
     let install_dir = config.versions();
     let cache_dir = config.cache();
 
-    println!("{}", Messages::installing_go(version));
+    ui.display_install_start(version);
 
     // Check if the version directory already exists
     let version_dir = install_dir.join(version);
     if version_dir.exists() && !force {
-        ui.info(&format!("Go {version} is already installed, switching to it"));
+        ui.info(&format!("Go {version} is already installed"));
+        ui.suggest("Switching to existing installation");
 
         // 直接切换到已存在的版本
         let switch_request = SwitchRequest {
@@ -34,12 +35,13 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
         return switch_to_existing_version(&manager, &ui, switch_request).await;
     }
     if force && version_dir.exists() {
-        println!("{}", Messages::removing_existing_installation(version));
+        ui.warning(&Messages::removing_existing_installation(version));
         fs::remove_dir_all(&version_dir).ok();
     }
 
     ui.kv_pair_colored("Install Directory", &install_dir.display().to_string(), "dimmed");
     ui.kv_pair_colored("Cache Directory", &cache_dir.display().to_string(), "dimmed");
+    ui.separator();
 
     // 检查缓存文件是否存在 - 支持跨平台文件名
     let (os, arch) = if cfg!(target_os = "windows") {
@@ -55,16 +57,17 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
 
     // 如果强制安装，删除现有缓存文件
     if force && cached_file.exists() {
-        ui.info(&format!("Force mode: removing cached file for Go {version}"));
+        ui.warning(&format!("Force mode: removing cached file for Go {version}"));
         fs::remove_file(&cached_file).ok();
     }
 
     if cached_file.exists() && !force {
-        ui.info(&Messages::found_cached_download(version));
+        ui.display_cache_info(&Messages::found_cached_download(version));
         // 从缓存解压安装
         return install_from_cache(version, &cached_file, &version_dir, &manager, &ui);
     } // 缓存和版本目录都不存在，需要下载
-    ui.info(&format!("Go {version} not found in cache, downloading..."));
+    ui.progress(&Messages::download_progress());
+    ui.progress_done("ready");
 
     // 确保目录存在
     fs::create_dir_all(install_dir)
@@ -83,24 +86,31 @@ pub async fn uninstall(version: &str, config: &Config) -> Result<()> {
     let manager = GoManager::new();
     let base_dir = config.versions();
 
-    println!("{}", Messages::uninstalling_go(version));
+    ui.display_uninstall_start(version);
 
     let uninstall_request =
         UninstallRequest { version: version.to_string(), base_dir: base_dir.clone() };
 
     match manager.uninstall(uninstall_request).await {
         Ok(()) => {
-            ui.success(&Messages::go_uninstalled_successfully(version));
+            ui.display_uninstall_success(version);
         }
         Err(e) => {
             if e.to_string().contains("not installed") {
-                ui.warning(&Messages::go_not_installed(version));
+                ui.display_error_with_suggestion(
+                    &Messages::go_not_installed(version),
+                    "List installed versions: gvm list"
+                );
             } else if e.to_string().contains("currently active") {
-                // 处理当前版本卸载错误，提供友好的提示
-                ui.error(&Messages::cannot_uninstall_current_version(version));
-                ui.info(&Messages::clear_current_symlink_hint());
+                ui.display_error_with_suggestion(
+                    &Messages::cannot_uninstall_current_version(version),
+                    &Messages::clear_current_symlink_hint()
+                );
             } else {
-                ui.error(&Messages::uninstall_failed(version, &e.to_string()));
+                ui.display_error_with_suggestion(
+                    &Messages::uninstall_failed(version, &e.to_string()),
+                    "Check if the version exists: gvm list"
+                );
             }
         }
     }
@@ -135,13 +145,22 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
                 ui.info(&Messages::installation_directory_not_found(
                     &base_dir.display().to_string(),
                 ));
-                ui.hint(&Messages::install_version_hint());
+                ui.suggest(&Messages::install_version_hint());
             } else {
-                ui.display_version_list(&list, &Messages::installed_go_versions());
+                // Get current version
+                let current_version = manager.get_current_version(base_dir);
+                ui.display_version_list_with_current(
+                    &list,
+                    &Messages::installed_go_versions(),
+                    current_version.as_deref()
+                );
             }
         }
         Err(e) => {
-            ui.error(&Messages::error_listing_versions(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::error_listing_versions(&e.to_string()),
+                "Check your installation directory or install a version first"
+            );
         }
     }
 
@@ -161,10 +180,13 @@ async fn list_available_versions() -> Result<()> {
                 ui.display_version_list(&list, &Messages::available_go_versions());
             }
             ui.info(&Messages::visit_go_website());
-            ui.hint(&Messages::install_with_hint());
+            ui.suggest(&Messages::install_with_hint());
         }
         Err(e) => {
-            ui.error(&Messages::error_getting_available_versions(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::error_getting_available_versions(&e.to_string()),
+                "Check your internet connection and try again"
+            );
         }
     }
 
@@ -184,47 +206,13 @@ pub async fn status(config: &Config) -> Result<()> {
 
     match manager.status(status_request).await {
         Ok(status) => {
-            ui.header("📊 Go Version Manager Status");
-
-            // Current version
-            if let Some(current_version) = status.current_version {
-                ui.success(&format!("Current version: {}", current_version));
-            } else {
-                ui.warning("No version currently active");
-            }
-
-            // Installation path
-            if let Some(install_path) = status.install_path {
-                ui.kv_pair_colored("Install Path", &install_path.display().to_string(), "dimmed");
-            }
-
-            // Environment variables
-            ui.newline();
-            ui.header("Environment Variables");
-            for (key, value) in status.environment_vars {
-                ui.kv_pair(&key, &value);
-            }
-
-            // Link information
-            if let Some(link_info) = status.link_info {
-                ui.newline();
-                ui.header("Symlink Information");
-                ui.info(&link_info);
-            }
-
-            // Configuration paths
-            ui.newline();
-            ui.header("Configuration");
-            ui.kv_pair_colored("Base Directory", &base_dir.display().to_string(), "dimmed");
-            ui.kv_pair_colored(
-                "Versions Directory",
-                &config.versions().display().to_string(),
-                "dimmed",
-            );
-            ui.kv_pair_colored("Cache Directory", &config.cache().display().to_string(), "dimmed");
+            ui.display_status(&status, base_dir, config);
         }
         Err(e) => {
-            ui.error(&Messages::error_getting_status(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::error_getting_status(&e.to_string()),
+                "Check your GVM installation and configuration"
+            );
         }
     }
 
@@ -243,11 +231,13 @@ pub async fn info(version: &str, config: &Config) -> Result<()> {
 
     match manager.get_version_info(version, install_dir, cache_dir).await {
         Ok(info) => {
-            ui.header(&format!("📦 Go {} Information", version));
             ui.display_version_info(&info);
         }
         Err(e) => {
-            ui.error(&format!("Failed to get information for Go {}: {}", version, e));
+            ui.display_error_with_suggestion(
+                &format!("Failed to get information for Go {}: {}", version, e),
+                "Verify the version number or check available versions: gvm list"
+            );
         }
     }
 
@@ -263,10 +253,13 @@ pub async fn switch_to_existing_version(
     let version = switch_request.version.clone();
     match manager.switch_to(switch_request).await {
         Ok(()) => {
-            ui.success(&Messages::switched_to_go_successfully(&version));
+            ui.display_switch_success(&version);
         }
         Err(e) => {
-            ui.error(&Messages::switch_failed(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::switch_failed(&e.to_string()),
+                "Check if the version is installed: gvm list"
+            );
         }
     }
 
@@ -281,7 +274,7 @@ fn install_from_cache(
     manager: &GoManager,
     ui: &UI,
 ) -> Result<()> {
-    ui.info("Extracting from cache...");
+    ui.progress(&Messages::extraction_progress());
 
     let install_request = InstallRequest {
         version: version.to_string(),
@@ -295,7 +288,10 @@ fn install_from_cache(
             ui.display_install_result(&version_info);
         }
         Err(e) => {
-            ui.error(&Messages::installation_failed(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::installation_failed(&e.to_string()),
+                "Try installing with --force flag or check your internet connection"
+            );
         }
     }
 
@@ -323,7 +319,10 @@ async fn download_and_install(
             ui.display_install_result(&version_info);
         }
         Err(e) => {
-            ui.error(&Messages::installation_failed(&e.to_string()));
+            ui.display_error_with_suggestion(
+                &Messages::installation_failed(&e.to_string()),
+                "Check your internet connection or try with --force flag"
+            );
         }
     }
 

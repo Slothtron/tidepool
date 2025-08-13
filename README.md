@@ -24,24 +24,55 @@ gvm status            # Show current version
 gvm --help            # Show all commands
 ```
 
+### ✨ Beautiful Command Output
+
+```bash
+# Enhanced list display
+$ gvm list
+▶ Installed Go Versions
+───────────────────────
+  📦 1.21.3
+  ⭐ 1.22.1 (active)
+──────────────────────────────────────────────────
+  Total versions: 2
+  Active version: 1.22.1
+```
+
+
+
+## 📖 Command Reference
+
+| Command               | Description                                         | Example Usage                 |
+| --------------------- | --------------------------------------------------- | ----------------------------- |
+| `gvm install <ver>`   | Install a specific Go version                       | `gvm install 1.22.1`          |
+| `gvm use <ver>`       | Switch to an installed Go version                   | `gvm use 1.22.1`              |
+| `gvm uninstall <ver>` | Uninstall a specific Go version                     | `gvm uninstall 1.21.3`        |
+| `gvm list`            | List all installed Go versions                      | `gvm list`                    |
+| `gvm status`          | Show current Go version and environment status      | `gvm status`                  |
+| `gvm info <ver>`      | Display detailed information about a specific version | `gvm info 1.22.1`             |
+| `gvm --help`          | Show help for all commands                          | `gvm --help`                  |
+| `gvm --version`       | Show GVM version                                    | `gvm --version`               |
+
 ## 📁 Project Structure
 
 ```
 tidepool/
-├── src/
-│   ├── main.rs                   # CLI entry point
-│   ├── lib.rs                    # Library entry point
-│   ├── cli.rs                    # CLI command parsing
-│   ├── commands.rs               # Command implementations
-│   ├── config.rs                 # Configuration management
-│   ├── ui.rs                     # User interface
-│   ├── go.rs                     # Go version management core
-│   ├── downloader.rs             # Downloader
-│   └── symlink.rs                # Symbolic link handling
-├── README.md                     # Documentation
+├── src/                         # Source code directory
+│   ├── main.rs                  # CLI entry point
+│   ├── lib.rs                   # Library entry point
+│   ├── cli.rs                   # CLI command parsing
+│   ├── commands.rs              # Command implementations
+│   ├── config.rs                # Configuration management
+│   ├── ui.rs                    # User interface
+│   ├── go.rs                    # Go version management core
+│   ├── downloader.rs            # Downloader module
+│   └── symlink.rs               # Symbolic link handling
+├── README.md                    # English documentation
 ├── README.zh-CN.md              # Chinese documentation
-├── Cargo.toml                    # Package configuration
-└── .github/                      # GitHub workflows
+├── Cargo.toml                   # Rust package configuration
+├── Cargo.lock                   # Locked dependency versions
+├── .github/                     # GitHub workflows
+└── rustfmt.toml                 # Rust formatting configuration
 ```
 
 ## ✨ Key Features
@@ -52,6 +83,7 @@ tidepool/
 - **🛡️ Safety First**: SHA256 verification and protection against accidental deletion
 - **⚙️ Smart Environment**: Automatic GOROOT, GOPATH, and PATH configuration
 - **📦 Simple Architecture**: Single crate design for easy maintenance
+- **🛠️ Developer Friendly**: Includes detailed architecture documentation and optimized build configurations
 
 ## 🔧 Development
 
