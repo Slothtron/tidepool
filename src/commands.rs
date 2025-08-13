@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::ui::{Messages, UI};
+use crate::ui::{Messages, ProgressManager, UI};
 use crate::{
     GoManager, InstallRequest, ListInstalledRequest, StatusRequest, SwitchRequest, UninstallRequest,
 };
@@ -12,6 +12,7 @@ use std::{fs, path::Path};
 /// Returns an error if the installation fails, network issues occur, or file system operations fail.
 pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> {
     let ui = UI::new();
+    let progress_manager = ProgressManager::new();
     let manager = GoManager::new();
     let install_dir = config.versions();
     let cache_dir = config.cache();
@@ -64,17 +65,26 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
     if cached_file.exists() && !force {
         ui.display_cache_info(&Messages::found_cached_download(version));
         // 从缓存解压安装
-        return install_from_cache(version, &cached_file, &version_dir, &manager, &ui);
+        return install_from_cache(
+            version,
+            &cached_file,
+            &version_dir,
+            &manager,
+            &ui,
+            &progress_manager,
+        )
+        .await;
     } // 缓存和版本目录都不存在，需要下载
-    ui.progress(&Messages::download_progress());
-    ui.progress_done("ready");
+    let download_spinner = progress_manager.new_spinner(&Messages::download_progress());
+    download_spinner.finish_with_message("Ready to download");
 
     // 确保目录存在
     fs::create_dir_all(install_dir)
         .with_context(|| format!("Failed to create directory: {}", install_dir.display()))?;
     fs::create_dir_all(cache_dir)
         .with_context(|| format!("Failed to create cache directory: {}", cache_dir.display()))?; // 下载并安装
-    download_and_install(version, install_dir, cache_dir, &manager, &ui, force).await
+    download_and_install(version, install_dir, cache_dir, &manager, &ui, &progress_manager, force)
+        .await
 }
 
 /// Uninstall a Go version.
@@ -99,17 +109,17 @@ pub async fn uninstall(version: &str, config: &Config) -> Result<()> {
             if e.to_string().contains("not installed") {
                 ui.display_error_with_suggestion(
                     &Messages::go_not_installed(version),
-                    "List installed versions: gvm list"
+                    "List installed versions: gvm list",
                 );
             } else if e.to_string().contains("currently active") {
                 ui.display_error_with_suggestion(
                     &Messages::cannot_uninstall_current_version(version),
-                    &Messages::clear_current_symlink_hint()
+                    &Messages::clear_current_symlink_hint(),
                 );
             } else {
                 ui.display_error_with_suggestion(
                     &Messages::uninstall_failed(version, &e.to_string()),
-                    "Check if the version exists: gvm list"
+                    "Check if the version exists: gvm list",
                 );
             }
         }
@@ -152,14 +162,14 @@ async fn list_installed_versions(config: &Config) -> Result<()> {
                 ui.display_version_list_with_current(
                     &list,
                     &Messages::installed_go_versions(),
-                    current_version.as_deref()
+                    current_version.as_deref(),
                 );
             }
         }
         Err(e) => {
             ui.display_error_with_suggestion(
                 &Messages::error_listing_versions(&e.to_string()),
-                "Check your installation directory or install a version first"
+                "Check your installation directory or install a version first",
             );
         }
     }
@@ -185,7 +195,7 @@ async fn list_available_versions() -> Result<()> {
         Err(e) => {
             ui.display_error_with_suggestion(
                 &Messages::error_getting_available_versions(&e.to_string()),
-                "Check your internet connection and try again"
+                "Check your internet connection and try again",
             );
         }
     }
@@ -211,7 +221,7 @@ pub async fn status(config: &Config) -> Result<()> {
         Err(e) => {
             ui.display_error_with_suggestion(
                 &Messages::error_getting_status(&e.to_string()),
-                "Check your GVM installation and configuration"
+                "Check your GVM installation and configuration",
             );
         }
     }
@@ -236,7 +246,7 @@ pub async fn info(version: &str, config: &Config) -> Result<()> {
         Err(e) => {
             ui.display_error_with_suggestion(
                 &format!("Failed to get information for Go {}: {}", version, e),
-                "Verify the version number or check available versions: gvm list"
+                "Verify the version number or check available versions: gvm list",
             );
         }
     }
@@ -258,7 +268,7 @@ pub async fn switch_to_existing_version(
         Err(e) => {
             ui.display_error_with_suggestion(
                 &Messages::switch_failed(&e.to_string()),
-                "Check if the version is installed: gvm list"
+                "Check if the version is installed: gvm list",
             );
         }
     }
@@ -267,14 +277,15 @@ pub async fn switch_to_existing_version(
 }
 
 /// Install from cached file.
-fn install_from_cache(
+async fn install_from_cache(
     version: &str,
     cached_file: &Path,
     version_dir: &Path,
     manager: &GoManager,
     ui: &UI,
+    progress_manager: &ProgressManager,
 ) -> Result<()> {
-    ui.progress(&Messages::extraction_progress());
+    let extraction_spinner = progress_manager.new_spinner(&Messages::extraction_progress());
 
     let install_request = InstallRequest {
         version: version.to_string(),
@@ -283,14 +294,16 @@ fn install_from_cache(
         force: false,
     };
 
-    match tokio::runtime::Runtime::new()?.block_on(manager.install(install_request)) {
+    match manager.install(install_request).await {
         Ok(version_info) => {
+            extraction_spinner.finish_with_message("Extraction completed");
             ui.display_install_result(&version_info);
         }
         Err(e) => {
+            extraction_spinner.abandon_with_message("Extraction failed");
             ui.display_error_with_suggestion(
                 &Messages::installation_failed(&e.to_string()),
-                "Try installing with --force flag or check your internet connection"
+                "Try installing with --force flag or check your internet connection",
             );
         }
     }
@@ -305,6 +318,7 @@ async fn download_and_install(
     cache_dir: &Path,
     manager: &GoManager,
     ui: &UI,
+    progress_manager: &ProgressManager,
     force: bool,
 ) -> Result<()> {
     let install_request = InstallRequest {
@@ -314,14 +328,19 @@ async fn download_and_install(
         force,
     };
 
+    let install_bar = progress_manager.new_install_bar(3);
+    install_bar.set_message("Starting installation...");
+
     match manager.install(install_request).await {
         Ok(version_info) => {
+            install_bar.finish_with_message("Installation completed");
             ui.display_install_result(&version_info);
         }
         Err(e) => {
+            install_bar.abandon_with_message("Installation failed");
             ui.display_error_with_suggestion(
                 &Messages::installation_failed(&e.to_string()),
-                "Check your internet connection or try with --force flag"
+                "Check your internet connection or try with --force flag",
             );
         }
     }

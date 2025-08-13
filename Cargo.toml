@@ -15,7 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-indicatif = "0.17"
+indicatif = { version = "0.17", features = ["improved_unicode"] }
 dirs = "5.0"
 serde_json = "1.0"
 console = "0.15"
@@ -39,6 +39,7 @@ reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
 clap = { version = "4.0", features = ["derive"] }
+dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 
 # Windows-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]

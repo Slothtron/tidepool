@@ -15,6 +15,7 @@ pub mod ui;
 pub use cli::Cli;
 pub use downloader::Downloader;
 pub use go::{GoManager, GoVersionInfo};
+pub use ui::{GvmUI, UI, ProgressManager, InteractiveUI};
 
 // 公共类型定义
 use serde::{Deserialize, Serialize};

@@ -168,9 +168,7 @@ impl Default for UI {
 impl UI {
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            term: Term::stdout(),
-        }
+        Self { term: Term::stdout() }
     }
 
     /// Print a banner with centered text
@@ -215,12 +213,22 @@ impl UI {
 
     /// Print a hint/tip message with enhanced styling
     pub fn hint(&self, message: &str) {
-        println!("{} {} {}", style(Icons::hint()).yellow(), style("Tip:").cyan().bold(), style(message).white());
+        println!(
+            "{} {} {}",
+            style(Icons::hint()).yellow(),
+            style("Tip:").cyan().bold(),
+            style(message).white()
+        );
     }
 
     /// Print an action suggestion
     pub fn suggest(&self, message: &str) {
-        println!("{} {} {}", style(Icons::arrow_right()).cyan(), style("Next:").cyan().bold(), style(message).cyan());
+        println!(
+            "{} {} {}",
+            style(Icons::arrow_right()).cyan(),
+            style("Next:").cyan().bold(),
+            style(message).cyan()
+        );
     }
 
     /// Print a progress message
@@ -236,10 +244,7 @@ impl UI {
 
     /// Print key-value pair with enhanced styling
     pub fn kv_pair(&self, key: &str, value: &str) {
-        println!("  {} {}",
-            style(format!("{}:", key)).dim().bold(),
-            style(value).white()
-        );
+        println!("  {} {}", style(format!("{}:", key)).dim().bold(), style(value).white());
     }
 
     /// Print key-value pair with colored value
@@ -254,10 +259,7 @@ impl UI {
             "bold" => style(value).bold(),
             _ => style(value),
         };
-        println!("  {} {}",
-            style(format!("{}:", key)).dim().bold(),
-            styled_value
-        );
+        println!("  {} {}", style(format!("{}:", key)).dim().bold(), styled_value);
     }
 
     /// Print a list item with enhanced styling
@@ -321,7 +323,8 @@ impl UI {
         for version in &list.versions {
             if let Some(current) = current_version {
                 if version.version == current {
-                    println!("  {} {} {}",
+                    println!(
+                        "  {} {} {}",
                         style(Icons::current()).yellow().bold(),
                         style(&version.version).green().bold(),
                         style("(active)").dim()
@@ -348,7 +351,11 @@ impl UI {
     /// Display installation progress and result with enhanced styling
     pub fn display_install_result(&self, version_info: &crate::VersionInfo) {
         self.success(&format!("Go {} installed successfully!", version_info.version));
-        self.kv_pair_colored("Installation path", &version_info.path.display().to_string(), "dimmed");
+        self.kv_pair_colored(
+            "Installation path",
+            &version_info.path.display().to_string(),
+            "dimmed",
+        );
         self.separator();
         self.suggest(&format!("Activate this version: gvm use {}", version_info.version));
     }
@@ -435,7 +442,12 @@ impl UI {
     }
 
     /// Display status information with enhanced layout
-    pub fn display_status(&self, status: &crate::RuntimeStatus, base_dir: &std::path::Path, config: &crate::config::Config) {
+    pub fn display_status(
+        &self,
+        status: &crate::RuntimeStatus,
+        base_dir: &std::path::Path,
+        config: &crate::config::Config,
+    ) {
         self.banner("Go Version Manager Status");
 
         // Current version section
@@ -462,7 +474,11 @@ impl UI {
         // Configuration section
         self.header("Configuration");
         self.kv_pair_colored("Base Directory", &base_dir.display().to_string(), "dimmed");
-        self.kv_pair_colored("Versions Directory", &config.versions().display().to_string(), "dimmed");
+        self.kv_pair_colored(
+            "Versions Directory",
+            &config.versions().display().to_string(),
+            "dimmed",
+        );
         self.kv_pair_colored("Cache Directory", &config.cache().display().to_string(), "dimmed");
 
         // Link information
@@ -494,12 +510,10 @@ impl UI {
         let bar_length = 40u64;
         let filled = (percentage * bar_length / 100) as usize;
         let remaining = (bar_length - (filled as u64)) as usize;
-        let bar = format!("{}{}",
-            "█".repeat(filled),
-            "░".repeat(remaining)
-        );
+        let bar = format!("{}{}", "█".repeat(filled), "░".repeat(remaining));
 
-        print!("\r{} [{}] {}%",
+        print!(
+            "\r{} [{}] {}%",
             style("Downloading").blue(),
             style(bar).cyan(),
             style(percentage).bold()
