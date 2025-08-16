@@ -37,17 +37,7 @@ pub use ui_flat::{format_duration, format_size, SimpleProgressBar, SimpleUI};
 
 // Public type definitions
 
-/// Version information
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct VersionInfo {
-    pub version: String,
-    pub os: String,
-    pub arch: String,
-    pub url: String,
-    pub sha256: String,
-    pub is_installed: bool,
-    pub path: std::path::PathBuf,
-}
+
 
 /// Installation request
 #[derive(Debug, Clone)]

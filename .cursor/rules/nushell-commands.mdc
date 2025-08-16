@@ -1,0 +1,315 @@
+---
+applyTo: '**/*'
+description: 'Nushell command reference and syntax guide for proper use of Nushell terminal commands in projects'
+---
+
+# Nushell Command Reference Guide
+
+## Core Concepts
+
+### Pipelines and Data Flow
+- Data flows through pipelines in Nushell until processed by the user or final command
+- Supports structured data (tables, lists, records) passing between commands
+- Variables are immutable by default, supporting functional programming and parallel processing
+
+### Scoped Environment
+- Code blocks independently manage environment changes (like `cd` command)
+- Environment changes are limited to current code block scope
+- Does not pollute global environment
+
+## Basic Command Syntax
+
+### File and Directory Operations
+```nu
+# List files
+ls                          # List current directory
+ls *.md                     # List .md files
+ls **/*.md                  # Recursively list all .md files in subdirectories
+
+# Directory navigation
+cd /path/to/directory       # Change directory
+cd ..                       # Go to parent directory
+cd ....                     # Go three levels up
+
+# File copying and moving
+cp myfile dir_b             # Copy file to directory
+cp -r dir_a dir_b           # Recursively copy directory
+cp -r -v dir_a dir_b        # Recursively copy with verbose output
+cp *.txt dir_a              # Copy multiple files
+cp -u myfile newfile        # Copy only if source is newer
+cp --preserve [mode timestamps] myfile newfile  # Copy preserving attributes
+```
+
+### External Command Execution
+```nu
+# Execute external commands
+^ls                         # Execute system ls command
+^find /path -name "*.txt"   # Execute system find command
+exec ps aux                 # Execute external command replacing current process
+exec nautilus               # Launch file manager
+
+# Pipeline processing of external command output
+^ls | split-row " " file    # Split external command output
+^ls -la | lines | split-column " "  # Process multi-line output
+```
+
+### Data Processing Commands
+```nu
+# Create and display data
+echo [sam fred george]      # Create string list
+echo 1 2 3                  # Output multiple values
+echo $in                    # Output pipeline input
+
+# Data filtering and selection
+ls | where size > 10kb      # Filter files larger than 10kb
+select name size            # Select specific columns
+nth 1 3 5                   # Select rows 1, 3, 5
+skip 2                      # Skip first 2 rows
+skip_while {|x| $x < 5}     # Skip rows meeting condition
+
+# Data sorting and transformation
+sort-by name                # Sort by name
+reverse                     # Reverse data
+shuffle                     # Random sort
+split_by type               # Group by type
+```
+
+### Command Connection Syntax
+```nu
+# Use semicolon to connect commands (instead of &&)
+cargo check; cargo test; cargo build
+
+# Use 'and' to connect commands
+cargo check and cargo test and cargo build
+
+# Avoid Bash-style &&
+# ❌ Wrong: cargo check && cargo test
+# ✅ Correct: cargo check; cargo test
+```
+
+## Advanced Features
+
+### Script Execution
+```nu
+# Execute scripts
+nu myscript.nu              # Run Nushell script
+source myscript.nu          # Load script in current session
+nu -c "ls"                  # Execute single command string
+
+# Shebang scripts
+echo "Hello World!" | ./myscript  # Pipe input to script
+```
+
+### Plugin System
+```nu
+# Install and manage plugins
+cargo install nu_plugin_*   # Install specific plugin
+plugin add ~/.cargo/bin/nu_plugin_len  # Add plugin (add .exe on Windows)
+plugin use len              # Load plugin immediately
+plugin list                 # View registered plugins
+```
+
+### Standard Library Usage
+```nu
+use std                     # Load entire standard library under std namespace
+use std *                   # Load all standard library modules to current namespace
+```
+
+### Custom Commands
+```nu
+# Define custom commands
+def "str mycommand" [] {    # Define subcommand
+    echo hello
+}
+str mycommand               # Call custom subcommand
+```
+
+## Data Types and Operations
+
+### List Operations
+```nu
+[1 2 3 4] | each { |x| $x * 2 }    # Multiply list elements by 2
+[a b c] | enumerate                  # Add indices
+```
+
+### Table Operations
+```nu
+[[name age]; [Alice 30] [Bob 25]]   # Create table
+| where age > 25                    # Filter rows
+| select name                       # Select columns
+| update name {|row| $row.name | str upcase}  # Update column values
+```
+
+### String Processing
+```nu
+"hello world" | str upcase          # Convert to uppercase
+"hello,world" | split row ","       # Split by comma
+```
+
+### File Operations
+```nu
+# File reading and writing
+open file.txt                      # Open file
+open foo.tar.gz                    # Auto-detect multi-extension files
+save my_file.txt                   # Save text file
+save my_binary_file.bin            # Save binary file (auto-detect)
+
+# File format processing
+open data.json | get items         # Process JSON data
+```
+
+## Utility Commands
+
+### System Information
+```nu
+which ls                    # Find command location (structured output)
+which which                 # Show built-in command info
+```
+
+### Output Control
+```nu
+echo done | ignore          # Ignore command output
+ls | ignore                 # Execute command silently
+```
+
+### Debug Tools
+```nu
+metadata $data              # View data metadata (debug category)
+help select                 # View command help (with code highlighting)
+```
+
+## Parallel Processing
+```nu
+# Parallel processing (leveraging immutability)
+ls | par-each { |file| 
+    $file.name | str upcase 
+}
+```
+
+## Project-Specific Command Patterns
+
+### Rust Project Common Commands
+```nu
+# Build and test workflow
+cargo check; cargo clippy; cargo test; cargo build --release
+
+# Conditional building
+if (which cargo | is-not-empty) {
+    cargo build
+} else {
+    echo "Cargo not found"
+}
+```
+
+### Git Operations
+```nu
+# Git status checking
+git status | lines | where ($it | str contains "modified")
+
+# Batch Git operations
+ls | where type == dir | each { |dir|
+    cd $dir.name; git pull; cd ..
+}
+```
+
+## Functional Programming Equivalents
+
+### Command Equivalents in Other Languages
+```nu
+# Nushell -> Clojure/JavaScript/Elixir equivalents
+sort-by         # sort, sort-by, sorted-set-by (Clojure)
+                # sort, sortBy, sortWith (JavaScript)
+                # sort, sortBy (Elixir)
+
+skip_while      # drop-while (Clojure)
+                # dropWhile (JavaScript)
+                # dropWhile, dropWhileEnd (Elixir)
+
+split_by        # split, split-{at,with,lines} (Clojure)
+                # split, words, lines (JavaScript)
+                # split, words, lines (Elixir)
+
+shuffle         # shuffle (Clojure)
+select(***)     # select-keys (Clojure)
+```
+
+## Traditional Shell Equivalents
+
+### PowerShell Equivalent Commands
+```nu
+cd              # Set-Location, cd (PowerShell)
+binaryview(*)   # Format-Hex (PowerShell)
+```
+
+### Bash Equivalent Commands
+```nu
+cd              # cd (Bash)
+which           # which (Unix Shell)
+```
+
+## Common Errors and Solutions
+
+### Syntax Errors
+```nu
+# ❌ Wrong: Using Bash syntax
+command1 && command2
+
+# ✅ Correct: Using Nushell syntax  
+command1; command2
+# or
+command1 and command2
+```
+
+### External Command Conflicts
+```nu
+# ❌ Potential conflict: Using built-in command
+find /path -name "*.txt"
+
+# ✅ Explicitly use external command
+^find /path -name "*.txt"
+```
+
+### Scope Issues
+```nu
+# ❌ Wrong: Expecting global environment change
+cd /tmp; pwd  # pwd might not be in /tmp
+
+# ✅ Correct: Handle in code block
+do { cd /tmp; pwd }  # Ensure execution in /tmp
+```
+
+## Performance Optimization Tips
+
+1. **Use parallel processing**: Use `par-each` for independent operations
+2. **Avoid unnecessary conversions**: Use structured data directly
+3. **Leverage pipelines**: Reduce intermediate variable creation
+4. **Use filters**: Filter data early to reduce processing load
+5. **External command optimization**: Use `^` prefix to explicitly call external commands
+
+## Best Practices
+
+### Command Organization
+- Use `ignore` to silence unwanted output
+- Leverage `which` to check command availability
+- Use `exec` to replace process instead of creating subprocess
+
+### Data Processing
+- Prioritize Nushell's built-in structured data processing
+- Use `nth` appropriately to select specific rows
+- Leverage `update` command to modify data (replaces old `edit`)
+
+### Script Writing
+- Use `source` to load reusable scripts
+- Leverage custom commands to create subcommands
+- Properly use shebang and `--stdin` for pipeline input handling
+
+## Reference Resources
+
+- [Nushell Official Documentation](https://www.nushell.sh/book/)
+- [Nushell Commands Documentation](https://www.nushell.sh/commands/)
+- [Nushell Cookbook](https://github.com/nushell/nushell/tree/main/cookbook)
+- [Nushell Scripts Repository](https://github.com/nushell/nu_scripts)
+
+---
+
+**Note**: This rule is written based on the latest Nushell official documentation, including complete command reference and best practices. Always prioritize Nushell syntax over traditional shell syntax in projects.

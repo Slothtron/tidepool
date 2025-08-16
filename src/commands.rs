@@ -23,7 +23,9 @@ pub async fn install(version: &str, config: &Config, force: bool) -> Result<()> 
         Ok(version_info) => {
             let ui = SimpleUI::new();
             ui.success(&format!("Go {} installed successfully", version_info.version));
-            ui.info(&format!("Installation path: {}", version_info.path.display()));
+            if let Some(install_path) = &version_info.install_path {
+                ui.info(&format!("Installation path: {}", install_path.display()));
+            }
             ui.hint(&format!("Use 'gvm use {version}' to activate this version"));
             Ok(())
         }
@@ -187,7 +189,7 @@ fn list_installed_versions(config: &Config) -> Result<()> {
             } else {
                 // List versions directly without a title
                 for version in &list.versions {
-                    ui.list_item(&version.version, false); // 临时修复，稍后处理 is_current 字段
+                    ui.list_item(&version.version, version.is_current);
                 }
                 // Show total count only if there are multiple versions
                 if list.versions.len() > 1 {
@@ -215,7 +217,7 @@ fn list_available_versions() -> Result<()> {
             } else {
                 ui.section("Available Go Versions");
                 for version in &list.versions {
-                    ui.list_item(&version.version, false);
+                    ui.list_item(&version.version, version.is_current);
                 }
                 ui.newline();
                 ui.info(&format!("Total: {} versions", list.total_count));

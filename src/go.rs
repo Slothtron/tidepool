@@ -3,7 +3,7 @@ use crate::{
     downloader::Downloader,
     symlink::{create_symlink, is_symlink, read_link, remove_symlink},
     InstallRequest, ListInstalledRequest, RuntimeStatus, StatusRequest, SwitchRequest,
-    UninstallRequest, VersionInfo, VersionList,
+    UninstallRequest, VersionList,
 };
 use anyhow::{anyhow, Result};
 use log::info;
@@ -33,6 +33,8 @@ pub struct GoVersionInfo {
     pub is_installed: bool,
     /// Whether it's cached
     pub is_cached: bool,
+    /// Whether it's the current active version
+    pub is_current: bool,
     /// Local installation path (if installed)
     pub install_path: Option<PathBuf>,
     /// Cache file path (if cached)
@@ -149,7 +151,7 @@ impl GoManager {
     }
 
     /// Install Go version
-    pub async fn install(&self, request: InstallRequest) -> Result<VersionInfo> {
+    pub async fn install(&self, request: InstallRequest) -> Result<GoVersionInfo> {
         let version = &request.version;
         let install_dir = &request.install_dir;
         let download_dir = &request.download_dir;
@@ -228,14 +230,20 @@ impl GoManager {
 
         info!("Successfully installed Go version {version}");
 
-        Ok(VersionInfo {
+        Ok(GoVersionInfo {
             version: version.to_string(),
-            os: std::env::consts::OS.to_string(),
-            arch: std::env::consts::ARCH.to_string(),
-            url: String::new(),
-            sha256: String::new(),
+            os: platform.os,
+            arch: platform.arch,
+            extension: platform.extension,
+            filename: filename.clone(),
+            download_url,
+            sha256: None, // 可以在后续版本中添加校验和验证
+            size: None,   // 可以在下载时获取文件大小
             is_installed: true,
-            path: version_dir,
+            is_cached: archive_path.exists(),
+            is_current: false, // 安装后不自动激活
+            install_path: Some(version_dir),
+            cache_path: if archive_path.exists() { Some(archive_path) } else { None },
         })
     }
 
@@ -296,7 +304,7 @@ impl GoManager {
             if path.is_dir() && path.file_name().is_some() {
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     if name != "current" {
-                        let _is_current = current_version.as_ref().is_some_and(|cv| cv == name);
+                        let is_current = current_version.as_ref().is_some_and(|cv| cv == name);
                         versions.push(GoVersionInfo {
                             version: name.to_string(),
                             os: std::env::consts::OS.to_string(),
@@ -308,6 +316,7 @@ impl GoManager {
                             size: None,
                             is_installed: true,
                             is_cached: false,
+                            is_current,
                             install_path: Some(path.clone()),
                             cache_path: None,
                         });
@@ -326,7 +335,12 @@ impl GoManager {
     pub fn list_available(&self) -> Result<VersionList> {
         // This is a simplified implementation
         // In a real implementation, you would fetch the list from Go's official API
-        let versions = vec![
+        
+        // 获取当前版本以便标记
+        let base_dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")).join(".gvm").join("versions");
+        let current_version = self.get_current_version(&base_dir);
+        
+        let mut versions = vec![
             GoVersionInfo {
                 version: "1.21.3".to_string(),
                 os: "linux".to_string(),
@@ -338,6 +352,7 @@ impl GoManager {
                 size: None,
                 is_installed: false,
                 is_cached: false,
+                is_current: false,
                 install_path: None,
                 cache_path: None,
             },
@@ -352,6 +367,7 @@ impl GoManager {
                 size: None,
                 is_installed: false,
                 is_cached: false,
+                is_current: false,
                 install_path: None,
                 cache_path: None,
             },
@@ -366,10 +382,18 @@ impl GoManager {
                 size: None,
                 is_installed: false,
                 is_cached: false,
+                is_current: false,
                 install_path: None,
                 cache_path: None,
             },
         ];
+        
+        // 标记当前版本
+        if let Some(ref current) = current_version {
+            for version in &mut versions {
+                version.is_current = version.version == *current;
+            }
+        }
 
         let total_count = versions.len();
         Ok(VersionList { versions, total_count })
@@ -438,6 +462,7 @@ impl GoManager {
             size: None,
             is_installed: install_path.exists(),
             is_cached: cache_path.exists(),
+            is_current: false, // 这个方法不检查当前版本状态
             install_path: if install_path.exists() { Some(install_path) } else { None },
             cache_path: if cache_path.exists() { Some(cache_path) } else { None },
         })

@@ -1,31 +1,43 @@
 # Cursor Rules for Tidepool GVM Project
 
-## 工作流程规则
+## Workflow Rules
 
-### 总结文档规则
-- 每次执行工作后，**不需要生成总结文档**
-- 所有总结信息仅在对话回复中输出即可
-- 避免创建 `*_SUMMARY.md`, `*_PHASE*.md` 等总结文档
-- 保持项目文件结构简洁，只保留核心文档
+### Summary Documentation Rules
+- After each task execution, **do not generate summary documents**
+- All summary information should only be output in conversation replies
+- Avoid creating `*_SUMMARY.md`, `*_PHASE*.md` and other summary documents
+- Keep project file structure clean, retain only core documentation
 
-### 核心文档保留
-以下文档应该保留和维护：
-- `README.md` - 项目说明文档
-- `README.zh-CN.md` - 中文项目说明  
+### Core Documentation Retention
+The following documents should be retained and maintained:
+- `README.md` - Project documentation
+- `README.zh-CN.md` - Chinese project documentation
 
-### 代码质量规则
-- 保持零警告编译
-- 所有修改后运行测试验证
-- 使用简洁的扁平化模块结构
-- 避免创建不必要的抽象层
+### Code Quality Rules
+- Maintain zero-warning compilation
+- Run tests for verification after all modifications
+- Use clean, flattened module structure
+- Avoid creating unnecessary abstraction layers
 
-### 中文回复规则
-- 始终使用简体中文回答问题
-- 代码注释使用中文
-- 保持回复简洁，避免冗余内容
+### Chinese Response Rules
+- Always respond in Simplified Chinese
+- Use Chinese for code comments
+- Keep responses concise, avoid redundant content
 
-### 项目特性
-- 专注于Go版本管理功能
-- 使用简单的文本输出和颜色高亮
-- 避免emoji/unicode符号，确保跨平台兼容
-- 保持最小依赖和简洁架构
+### Terminal Command Rules
+- Use Nushell syntax for executing terminal commands
+- Use `;` or `and` instead of `&&` to connect commands
+- Avoid using Bash/PowerShell specific syntax
+
+### Text Search Rules
+- Use `rg` (ripgrep) instead of traditional `grep` for text searching
+- Leverage ripgrep's file type filtering with `--type` flag
+- Use ripgrep's smart defaults (respects .gitignore, excludes binary files)
+- Prefer `rg 'pattern' --type rust` over `grep -r 'pattern' *.rs`
+- Use ripgrep for code analysis and pattern finding in development
+
+### Project Features
+- Focus on Go version management functionality
+- Use simple text output and color highlighting
+- Avoid emoji/unicode symbols to ensure cross-platform compatibility
+- Maintain minimal dependencies and clean architecture

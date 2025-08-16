@@ -1,0 +1,309 @@
+---
+applyTo: '**/*'
+description: 'Ripgrep command reference and best practices for efficient text searching in development projects'
+---
+
+# Ripgrep Command Reference Guide
+
+## Core Concepts
+
+### What is Ripgrep
+- High-performance text search tool written in Rust
+- Recursively searches directories by default
+- Respects `.gitignore` and other ignore files
+- Supports complex regex patterns and file type filtering
+- Excellent replacement for traditional `grep` with better performance
+
+### Key Advantages
+- **Speed**: Significantly faster than GNU grep and other alternatives
+- **Smart defaults**: Automatically ignores binary files and respects version control
+- **Rich output**: Colored output with line numbers and context
+- **Cross-platform**: Works consistently across Linux, macOS, and Windows
+
+## Basic Search Commands
+
+### Fundamental Searches
+```bash
+# Basic text search
+rg clap                     # Search for 'clap' in current directory recursively
+rg 'fn run'                 # Search for function definitions
+rg 'write'                  # Search for 'write' keyword
+
+# Case-sensitive and insensitive
+rg -i 'ERROR'               # Case-insensitive search
+rg -s 'Error'               # Case-sensitive search (default)
+```
+
+### File Type Filtering
+```bash
+# Search by file type
+rg 'fn run' --type rust     # Search only in Rust files
+rg 'fn run' -trust          # Shorthand for --type rust
+rg 'fn run' -g '*.rs'       # Using glob patterns
+
+# List available file types
+rg --type-list              # Show all predefined file types
+rg --type-list | rg '^make:' # Show globs for specific type
+```
+
+### Custom File Types
+```bash
+# Define custom file types
+rg --type-add 'web:*.{html,css,js}' --type-list  # Define and verify custom type
+rg 'function' --type web    # Use custom file type
+```
+
+## Advanced Search Features
+
+### Pattern Matching
+```bash
+# Word boundary search
+rg -w '[A-Z]\w+ Sherlock [A-Z]\w+'  # Match whole words only
+
+# Regex engines
+rg -P '^\w{42}$'            # Use PCRE2 engine for complex patterns
+rg '(?-u)^\w{42}$'          # Disable Unicode for performance
+```
+
+### Search and Replace
+```bash
+# Replace functionality
+rg '^.*fast.*$' README.md -r FAST    # Replace entire lines containing 'fast'
+rg 'old_function' -r 'new_function'  # Simple text replacement
+```
+
+### Context and Output Control
+```bash
+# Context lines
+rg -A 3 -B 3 'error'        # Show 3 lines after and before matches
+rg -C 5 'TODO'              # Show 5 lines of context around matches
+
+# Output formatting
+rg --no-line-number 'pattern'        # Hide line numbers
+rg --no-filename 'pattern'           # Hide filenames
+rg --only-matching 'pattern'         # Show only matched text
+```
+
+## Performance Optimization
+
+### Speed Enhancements
+```bash
+# Disable Unicode for better performance
+rg '(?-u)^\w{42}$' large_file        # Default engine without Unicode
+rg -P '^\w{42}$' --no-pcre2-unicode large_file  # PCRE2 without Unicode
+
+# Disable encoding detection
+rg -P '^\w{42}$' --no-encoding large_file
+```
+
+### Memory and Processing
+```bash
+# Limit search depth
+rg --max-depth 2 'pattern'   # Search only 2 levels deep
+rg --max-filesize 1M 'pattern'  # Skip files larger than 1MB
+```
+
+## Output Customization
+
+### Color Configuration
+```bash
+# Custom color schemes
+rg --colors line:fg:yellow \
+   --colors line:style:bold \
+   --colors path:fg:green \
+   --colors path:style:bold \
+   --colors match:fg:black \
+   --colors match:bg:yellow \
+   --colors match:style:nobold \
+   'search_term'
+
+# True colors on Windows 10
+rg 'pattern' --colors 'match:none' --colors 'match:fg:0x33,0x66,0xFF'
+```
+
+### Output Formats
+```bash
+# JSON output for scripting
+rg --json 'pattern' file.txt
+
+# Statistics
+rg --stats 'pattern'         # Show search statistics
+rg --count 'pattern'         # Show only match counts per file
+```
+
+## File Processing
+
+### Binary and Special Files
+```bash
+# Handle binary files
+rg --text 'pattern'          # Force search in binary files
+rg --binary 'pattern'        # Include binary files in search
+
+# Preprocessing (e.g., PDF files)
+pdftotext document.pdf - | rg 'search_term'  # Search in PDF content
+```
+
+### Ignore Patterns
+```bash
+# Custom ignore patterns
+rg --ignore-file .custom_ignore 'pattern'
+rg --no-ignore 'pattern'     # Ignore all ignore files
+rg --no-ignore-vcs 'pattern' # Ignore VCS ignore files only
+```
+
+## Development Workflow Integration
+
+### Code Search Patterns
+```bash
+# Find function definitions
+rg 'fn\s+\w+' --type rust    # Rust functions
+rg 'function\s+\w+' --type js # JavaScript functions
+rg 'def\s+\w+' --type python # Python functions
+
+# Find TODO/FIXME comments
+rg 'TODO|FIXME|HACK|XXX' --type-not binary
+
+# Search for imports/includes
+rg '^use\s+' --type rust     # Rust use statements
+rg '^import\s+' --type js    # JavaScript imports
+```
+
+### Git Integration
+```bash
+# Search in git history
+git log -p | rg 'pattern'    # Search in commit diffs
+rg 'pattern' $(git ls-files) # Search only git-tracked files
+```
+
+## Troubleshooting
+
+### Command Conflicts
+```bash
+# Ensure correct ripgrep execution
+which rg                     # Check rg command path
+command rg                   # Bypass shell aliases
+\rg                         # Escape command
+'rg'                        # Quote command
+```
+
+### Platform-Specific Issues
+```bash
+# Windows Cygwin path issues
+rg //foo                     # Double slash workaround
+MSYS_NO_PATHCONV=1 rg /foo  # Disable path conversion
+
+# Encoding issues
+rg --encoding utf8 'pattern' # Force UTF-8 encoding
+```
+
+## Installation Commands
+
+### Package Managers
+```bash
+# Windows
+winget install BurntSushi.ripgrep.MSVC
+
+# Debian/Ubuntu
+sudo apt-get install ripgrep
+
+# macOS
+brew install ripgrep
+sudo port install ripgrep    # MacPorts
+
+# Arch Linux
+sudo pacman -S ripgrep
+
+# Gentoo
+sudo emerge sys-apps/ripgrep
+
+# NetBSD
+sudo pkgin install ripgrep
+
+# Generic package managers
+flox install ripgrep
+```
+
+### From Source
+```bash
+# Compile with all features
+cargo install ripgrep
+
+# Compile with specific features
+cargo build --release --features 'pcre2'
+```
+
+## Best Practices
+
+### Performance Tips
+1. **Use file type filters**: `--type` is faster than glob patterns
+2. **Disable Unicode when possible**: For ASCII-only searches
+3. **Use word boundaries**: `-w` flag for exact word matches
+4. **Limit search scope**: Use `--max-depth` for deep directories
+
+### Search Strategy
+1. **Start broad, then narrow**: Begin with simple patterns, add filters
+2. **Use appropriate regex engine**: Default for most cases, PCRE2 for complex patterns
+3. **Leverage ignore files**: Let ripgrep respect project ignore patterns
+4. **Combine with other tools**: Pipe output to other commands for processing
+
+### Development Workflow
+1. **Create aliases**: For frequently used search patterns
+2. **Use in scripts**: JSON output for programmatic processing
+3. **Integrate with editors**: Many editors support ripgrep integration
+4. **Customize colors**: Improve readability in your terminal
+
+## Common Use Cases
+
+### Code Review and Analysis
+```bash
+# Find potential security issues
+rg 'password|secret|token' --type-not binary
+
+# Locate deprecated functions
+rg '@deprecated|DEPRECATED' --type java
+
+# Find hardcoded values
+rg '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'  # IP addresses
+```
+
+### Documentation and Comments
+```bash
+# Find documentation gaps
+rg 'TODO.*doc|FIXME.*doc' --type-not binary
+
+# Search API documentation
+rg 'API|endpoint|route' --type md
+```
+
+### Configuration and Setup
+```bash
+# Find configuration files
+rg 'config|settings' -g '*.{json,yaml,yml,toml,ini}'
+
+# Environment variables
+rg '\$\{?\w+\}?' --type sh   # Shell variables
+```
+
+## Integration with Development Tools
+
+### Editor Integration
+- **VS Code**: ripgrep is the default search engine
+- **Vim/Neovim**: Use with plugins like `fzf.vim`
+- **Emacs**: Integration through `rg.el` package
+
+### CI/CD Integration
+```bash
+# Check for sensitive data in CI
+rg 'password|secret|key' --exit-code && echo "Sensitive data found!" && exit 1
+```
+
+## Reference Resources
+
+- [Ripgrep Official Repository](https://github.com/burntsushi/ripgrep)
+- [Ripgrep User Guide](https://github.com/burntsushi/ripgrep/blob/master/GUIDE.md)
+- [Ripgrep FAQ](https://github.com/burntsushi/ripgrep/blob/master/FAQ.md)
+- [Performance Benchmarks](https://github.com/burntsushi/ripgrep#benchmarks)
+
+---
+
+**Note**: This guide covers ripgrep's most commonly used features and best practices. Ripgrep is actively maintained and regularly updated with new features and performance improvements. Always refer to the official documentation for the most current information.
