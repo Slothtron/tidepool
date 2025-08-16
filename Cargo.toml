@@ -1,30 +1,34 @@
 
 [package]
 name = "tidepool-gvm"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.70.0"
 authors = ["Slothtron"]
 license = "MIT"
 repository = "https://github.com/Slothtron/tidepool"
-description = "A high-performance Go version management toolkit (GVM) written in Rust"
+description = "A simple, high-performance Go version management tool written in Rust with clean architecture and minimal dependencies"
 
 [[bin]]
 name = "gvm"
 path = "src/main.rs"
 
+[[example]]
+name = "modern_ui_demo"
+path = "examples/modern_ui_demo.rs"
+
 [dependencies]
 anyhow = "1.0"
-indicatif = { version = "0.17", features = ["improved_unicode"] }
 dirs = "5.0"
 serde_json = "1.0"
-console = "0.15"
+colored = "2.0"
 futures = "0.3"
+futures-util = "0.3"
 bytes = "1.0"
 thiserror = "1.0"
 url = "2.4"
 zip = "0.6"
-async-trait = "0.1"
+# async-trait = "0.1"  # 移除，不再需要复杂的trait抽象
 log = "0.4"
 env_logger = "0.10"
 tempfile = "3.5.0"
@@ -40,7 +44,7 @@ reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
 clap = { version = "4.0", features = ["derive"] }
-dialoguer = { version = "0.11", features = ["fuzzy-select"] }
+# dialoguer = { version = "0.11", features = ["fuzzy-select"] }  # 移除复杂交互功能
 
 # Windows-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -52,6 +56,7 @@ flate2 = "1.0"
 tar = "0.4"
 
 [dev-dependencies]
+# mockall = "0.12.1"  # 移除，不再需要复杂的mock测试
 tempfile = "3.5.0"
 tokio = { version = "1.0", features = ["macros", "rt"] }
 

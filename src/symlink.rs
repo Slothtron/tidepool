@@ -1,149 +1,110 @@
-//! 跨平台符号链接统一接口模块
+//! Cross-platform symbolic link unified interface module
 //!
-//! 这个模块提供了跨平台的符号链接操作接口：
-//! - Windows: 使用 junction points 进行目录链接（内部实现）
-//! - Unix: 使用符号链接
+//! This module provides a cross-platform interface for symbolic link operations:
+//! - Windows: Uses junction points for directory links (internal implementation).
+//! - Unix: Uses symbolic links.
 //!
-//! 统一的 API 使得上层代码无需关心平台差异。
-//!
-//! 所有操作都只尝试一次，失败时直接返回详细错误信息，
-//! 不进行重试，确保错误信息透明传递给用户。
+//! The unified API allows higher-level code to be platform-agnostic.
+//! All operations are attempted only once; on failure, a detailed error is returned directly
+//! without retries, ensuring transparent error propagation to the user.
 
-use log::debug;
-use std::path::{Path, PathBuf};
+#[cfg(windows)]
+use junction;
 
-/// 跨平台创建目录符号链接（Windows 使用 junction，Unix 使用 symlink）
+/// Creates a directory symbolic link cross-platform (junction on Windows, symlink on Unix)
 ///
-/// # 参数
-/// * `from` - 链接指向的目标路径
-/// * `to` - 要创建的链接路径
+/// # Arguments
+/// * `from` - The target path the link points to
+/// * `to` - The path of the link to be created
 ///
-/// # 错误
-/// 当无法创建链接时返回错误
-pub fn symlink_dir<P: AsRef<Path>, U: AsRef<Path>>(src: P, dst: U) -> std::io::Result<()> {
-    let src = src.as_ref();
-    let dst = dst.as_ref();
-
-    debug!("Creating symlink: {} -> {}", dst.display(), src.display());
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::os::unix::fs::symlink(src, dst)?;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        junction::create(src, dst)?;
-    }
-
-    debug!("Successfully created symlink: {} -> {}", dst.display(), src.display());
-    Ok(())
+/// # Errors
+/// Returns an error if the link cannot be created.
+#[cfg(unix)]
+pub fn create_symlink(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(from, to)
 }
 
-/// 跨平台删除目录符号链接
+/// Creates a directory symbolic link cross-platform (junction on Windows, symlink on Unix)
 ///
-/// # 参数
-/// * `path` - 要删除的链接路径
+/// # Arguments
+/// * `from` - The target path the link points to
+/// * `to` - The path of the link to be created
 ///
-/// # 错误
-/// 当无法删除链接时返回错误
-pub fn remove_symlink_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
-    let path = path.as_ref();
-    debug!("Removing symlink: {}", path.display());
-
-    #[cfg(target_os = "windows")]
-    {
-        // Windows: junction 被当作目录删除
-        std::fs::remove_dir(path)?;
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Unix: symlink 被当作文件删除
-        std::fs::remove_file(path)?;
-    }
-
-    debug!("Successfully removed symlink: {}", path.display());
-    Ok(())
+/// # Errors
+/// Returns an error if the link cannot be created.
+#[cfg(windows)]
+pub fn create_symlink(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    junction::create(from, to)
 }
 
-/// 读取符号链接目标（跨平台）
+/// Deletes a directory symbolic link cross-platform
 ///
-/// # 参数
-/// * `path` - 符号链接路径
+/// # Arguments
+/// * `path` - The path of the link to be deleted
 ///
-/// # 返回
-/// 链接指向的目标路径
-///
-/// # 错误
-/// 当路径不是符号链接或无法读取时返回错误
-pub fn read_symlink<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
-    let path = path.as_ref();
-    #[cfg(target_os = "windows")]
-    {
-        // Windows: 使用 junction crate
-        junction::get_target(path)
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Unix: 使用标准 read_link
-        std::fs::read_link(path)
-    }
+/// # Errors
+/// Returns an error if the link cannot be deleted.
+#[cfg(windows)]
+pub fn remove_symlink(path: &std::path::Path) -> std::io::Result<()> {
+    // Windows: junctions are deleted as directories
+    std::fs::remove_dir(path)
 }
 
-/// 检查路径是否为符号链接/junction
+/// Deletes a directory symbolic link cross-platform
 ///
-/// # 参数
-/// * `path` - 要检查的路径
+/// # Arguments
+/// * `path` - The path of the link to be deleted
 ///
-/// # 返回
-/// 如果是符号链接/junction 返回 true，否则返回 false
-pub fn is_symlink<P: AsRef<Path>>(path: P) -> bool {
-    let path = path.as_ref();
-    #[cfg(target_os = "windows")]
-    {
-        // Windows: 仅检查 junction
-        junction::exists(path).unwrap_or(false)
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Unix: 仅检查标准 symlink
-        path.is_symlink()
-    }
+/// # Errors
+/// Returns an error if the link cannot be deleted.
+#[cfg(unix)]
+pub fn remove_symlink(path: &std::path::Path) -> std::io::Result<()> {
+    // Unix: symlinks are deleted as files
+    std::fs::remove_file(path)
 }
 
-/// 获取符号链接目标路径（如果是符号链接）
+/// Reads the target of a symbolic link (cross-platform)
 ///
-/// # 参数
-/// * `path` - 要检查的路径
+/// # Arguments
+/// * `path` - The symbolic link path
 ///
-/// # 返回
-/// 如果是符号链接，返回目标路径；否则返回 None
-pub fn get_symlink_target<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
-    let path = path.as_ref();
+/// # Returns
+/// The target path the link points to
+///
+/// # Errors
+/// Returns an error if the path is not a symbolic link or cannot be read.
+#[cfg(windows)]
+pub fn read_link(path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    // Windows: use the junction crate
+    junction::get_target(path)
+}
 
-    if !path.exists() {
-        return None;
-    }
-    #[cfg(target_os = "windows")]
-    {
-        // Windows: 仅使用 junction crate
-        if junction::exists(path).unwrap_or(false) {
-            junction::get_target(path).ok()
-        } else {
-            None
-        }
-    }
+/// Reads the target of a symbolic link (cross-platform)
+///
+/// # Arguments
+/// * `path` - The symbolic link path
+///
+/// # Returns
+/// The target path the link points to
+///
+/// # Errors
+/// Returns an error if the path is not a symbolic link or cannot be read.
+#[cfg(unix)]
+pub fn read_link(path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    // Unix: use standard read_link
+    std::fs::read_link(path)
+}
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Unix: 仅使用标准 symlink
-        if path.is_symlink() {
-            std::fs::read_link(path).ok()
-        } else {
-            None
-        }
-    }
+/// Checks if a path is a symbolic link/junction
+///
+/// # Arguments
+/// * `path` - The path to check
+#[cfg(windows)]
+pub fn is_symlink(path: &std::path::Path) -> bool {
+    junction::exists(path).unwrap_or(false)
+}
+
+#[cfg(unix)]
+pub fn is_symlink(path: &std::path::Path) -> bool {
+    path.symlink_metadata().map(|m| m.file_type().is_symlink()).unwrap_or(false)
 }

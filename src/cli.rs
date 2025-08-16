@@ -1,48 +1,57 @@
+//! Command line interface definition
 use crate::{commands, config::Config};
 use clap::{Parser, Subcommand};
 
-/// Tidepool GVM - 高性能 Go 版本管理工具
-#[derive(Parser)]
-#[command(name = "gvm")]
-#[command(about = "高性能 Go 版本管理工具")]
-#[command(version = env!("CARGO_PKG_VERSION"))]
-#[command(propagate_version = true)]
+/// Tidepool GVM - A high-performance Go Version Manager
+#[derive(Parser, Debug)]
+#[command(author, version, about = "A high-performance Go version management tool")]
 pub struct Cli {
+    /// Verbose mode
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
+
+    /// Quiet mode (only output errors)
+    #[arg(short, long, global = true)]
+    pub quiet: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// 安装指定版本的 Go
+    /// Install a specific Go version
     Install {
-        /// Go 版本号 (例如: 1.21.3)
-        #[arg(name = "go-version")]
+        /// The Go version to install (e.g., 1.21.3)
         version: String,
-        /// 强制重新安装
+        /// Force re-installation
         #[arg(short, long)]
         force: bool,
     },
-    /// 切换到指定版本的 Go
+    /// Switch to a specific Go version
     Use {
-        /// Go 版本号 (例如: 1.21.3)
-        #[arg(name = "go-version")]
+        /// The Go version to use (e.g., 1.21.3)
         version: String,
+        /// Set as global version
+        #[arg(short, long)]
+        global: bool,
     },
-    /// 卸载指定版本的 Go
+    /// Uninstall a specific Go version
     Uninstall {
-        /// Go 版本号 (例如: 1.21.3)
-        #[arg(name = "go-version")]
+        /// The Go version to uninstall (e.g., 1.21.3)
         version: String,
     },
-    /// 列出已安装的 Go 版本
-    List,
-    /// 显示当前 Go 版本状态
+    /// List Go versions
+    List {
+        /// List all available remote versions
+        #[arg(short, long)]
+        all: bool,
+    },
+    /// Show the current Go version status
     Status,
-    /// 显示指定版本的详细信息
+    /// Show detailed information about a Go version
     Info {
-        /// Go 版本号 (例如: 1.21.3)
-        #[arg(name = "go-version")]
+        /// The Go version to show information for (e.g., 1.21.3)
         version: String,
     },
 }
@@ -55,23 +64,11 @@ impl Cli {
             Commands::Install { version, force } => {
                 commands::install(version, &config, *force).await
             }
-            Commands::Use { version } => {
-                commands::switch_to_existing_version(
-                    &crate::go::GoManager::new(),
-                    &crate::ui::UI::new(),
-                    crate::SwitchRequest {
-                        version: version.clone(),
-                        base_dir: config.versions().clone(),
-                        global: false,
-                        force: false,
-                    },
-                )
-                .await
-            }
-            Commands::Uninstall { version } => commands::uninstall(version, &config).await,
-            Commands::List => commands::list(&config, false).await,
-            Commands::Status => commands::status(&config).await,
-            Commands::Info { version } => commands::info(version, &config).await,
+            Commands::Use { version, global } => commands::switch(version, &config, *global, false),
+            Commands::Uninstall { version } => commands::uninstall(version, &config),
+            Commands::List { all } => commands::list(&config, *all),
+            Commands::Status => commands::status(&config),
+            Commands::Info { version } => commands::info(version, &config),
         }
     }
 }

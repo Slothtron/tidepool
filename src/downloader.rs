@@ -1,145 +1,91 @@
-//! 内置下载器模块
+//! Built-in downloader module
 //!
-//! 集成到 version-manager 中的下载器，提供文件下载功能
-//! 支持分片下载、多线程下载和断点续传
+//! Integrated downloader for version-manager, providing file download functionality.
+//! Uses a simple text-based progress display, independent of `indicatif`.
 
-use indicatif::{ProgressBar, ProgressStyle};
-use log::{debug, info};
+use crate::progress_flat::BasicProgress;
+use futures::future::try_join_all;
+use futures::StreamExt;
+use log::{debug, info, warn};
 use reqwest::Client;
 use std::path::Path;
-
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use thiserror::Error;
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::fs::{File, OpenOptions};
+use tokio::io::{AsyncSeekExt, AsyncWriteExt, SeekFrom};
+use tokio::sync::Semaphore;
 
-/// 下载器错误类型
+/// Downloader error types
 #[derive(Error, Debug)]
 pub enum DownloadError {
-    #[error("网络错误: {0}")]
+    #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
-
-    #[error("IO错误: {0}")]
+    #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-
-    #[error("无法获取文件大小")]
-    FileSizeUnavailable,
-
-    #[error("服务器不支持范围请求")]
+    #[error("Could not get file size")]
+    FileSize,
+    #[error("Server does not support range requests")]
     RangeNotSupported,
-
-    #[error("分片下载失败: {0}")]
+    #[error("Chunk download failed: {0}")]
     ChunkDownloadFailed(String),
-
-    #[error("其他错误: {0}")]
+    #[error("Other error: {0}")]
     Other(String),
 }
 
-/// 下载结果类型
+/// Download result type
 pub type DownloadResult<T> = Result<T, DownloadError>;
 
-/// 进度报告器
+/// Simplified progress callback type
+pub type ProgressCallback = Box<dyn Fn(u64, u64) + Send + Sync>;
+
+/// Chunk download information
 #[derive(Debug, Clone)]
-pub struct ProgressReporter {
-    /// 主进度条
-    progress_bar: ProgressBar,
+pub struct ChunkInfo {
+    /// Chunk index
+    pub index: usize,
+    /// Start position
+    pub start: u64,
+    /// End position
+    pub end: u64,
+    /// Chunk size
+    pub size: u64,
 }
 
-impl ProgressReporter {
-    /// 创建新的进度报告器
-    ///
-    /// # Panics
-    ///
-    /// Panics if the progress bar template is invalid (which should not happen with the predefined template)
-    #[must_use]
-    pub fn new(total_size: u64) -> Self {
-        let progress_bar = ProgressBar::new(total_size);
-        let total_formatted = format_file_size(total_size);
-        progress_bar.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} {msg}")
-                .unwrap()
-                .progress_chars("#>-"),
-        );
-        progress_bar.set_message(format!("0% (0/{})", total_formatted));
-
-        Self { progress_bar }
-    }
-
-    /// 开始下载
-    pub fn start(&self) {
-        self.progress_bar.tick();
-    }
-
-    /// 更新进度
-    pub fn update(&self, bytes_downloaded: u64) {
-        self.progress_bar.set_position(bytes_downloaded);
-
-        // Update message with percentage and formatted sizes
-        let total = self.progress_bar.length().unwrap_or(0);
-        if total > 0 {
-            let current_formatted = format_file_size(bytes_downloaded);
-            let total_formatted = format_file_size(total);
-            let percent = (bytes_downloaded * 100) / total;
-            self.progress_bar
-                .set_message(format!("{}% ({}/{})", percent, current_formatted, total_formatted));
-        }
-    }
-
-    /// 增加进度
-    pub fn increment(&self, bytes: u64) {
-        self.progress_bar.inc(bytes);
-    }
-
-    /// 完成下载
-    pub fn finish(&self) {
-        self.progress_bar.finish_with_message("下载完成");
-    }
-
-    /// 设置长度
-    pub fn set_length(&self, length: u64) {
-        self.progress_bar.set_length(length);
-    }
-
-    /// 获取长度
-    #[must_use]
-    pub fn length(&self) -> Option<u64> {
-        Some(self.progress_bar.length().unwrap_or(0))
-    }
-
-    /// 设置消息
-    pub fn set_message(&self, message: &str) {
-        self.progress_bar.set_message(message.to_string());
+impl ChunkInfo {
+    /// Creates new chunk information
+    pub fn new(index: usize, start: u64, end: u64) -> Self {
+        Self { index, start, end, size: end - start + 1 }
     }
 }
 
-/// 下载配置
+/// Download configuration
 #[derive(Debug, Clone)]
 pub struct DownloadConfig {
-    /// 用户代理
-    pub user_agent: Option<String>,
-    /// 请求超时时间（秒）
-    pub timeout_seconds: u64,
-    /// 连接超时时间（秒）
-    pub connect_timeout_seconds: u64,
-    /// 并发下载的线程数
+    /// User-Agent
+    pub user_agent: String,
+    /// Request timeout in seconds
+    pub timeout: Duration,
+    /// Connection timeout in seconds
+    pub connect_timeout: Duration,
+    /// Number of concurrent download threads
     pub concurrent_connections: usize,
-    /// 每个分片的最小大小（字节）
+    /// Minimum size of each chunk in bytes
     pub min_chunk_size: u64,
-    /// 重试次数
-    pub max_retries: usize,
-    /// 重试间隔（毫秒）
+    /// Number of retries
+    pub max_retries: u32,
+    /// Retry interval in milliseconds
     pub retry_delay_ms: u64,
-    /// 是否启用分片下载
+    /// Whether to enable chunked downloading
     pub enable_chunked_download: bool,
 }
 
 impl Default for DownloadConfig {
     fn default() -> Self {
         Self {
-            user_agent: Some("Tidepool-GVM/1.0".to_string()),
-            timeout_seconds: 300, // 5 minutes
-            connect_timeout_seconds: 30,
+            user_agent: "Tidepool-GVM/1.0".to_string(),
+            timeout: Duration::from_secs(300), // 5 minutes
+            connect_timeout: Duration::from_secs(30),
             concurrent_connections: 4,
             min_chunk_size: 1024 * 1024, // 1MB
             max_retries: 3,
@@ -149,140 +95,301 @@ impl Default for DownloadConfig {
     }
 }
 
-/// 下载器
+/// Downloader
 pub struct Downloader {
-    /// HTTP客户端
+    /// HTTP client
     client: Client,
-    /// 下载配置（保留以供将来扩展）
+    /// Download configuration (reserved for future extension)
     #[allow(dead_code)]
     config: DownloadConfig,
 }
 
 impl Downloader {
-    /// 创建新的下载器
+    /// Creates a new downloader
     #[must_use]
     pub fn new() -> Self {
-        Self::with_config(DownloadConfig::default())
+        let config = DownloadConfig::default();
+        Self::with_config(config)
     }
 
-    /// 使用自定义配置创建下载器
+    /// Creates a downloader with custom configuration
     #[must_use]
     pub fn with_config(config: DownloadConfig) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(config.timeout_seconds))
-            .connect_timeout(Duration::from_secs(config.connect_timeout_seconds))
-            .user_agent(config.user_agent.as_deref().unwrap_or("Tidepool-GVM/1.0"))
+            .user_agent(&config.user_agent)
+            .timeout(config.timeout)
+            .connect_timeout(config.connect_timeout)
             .build()
-            .expect("Failed to create HTTP client");
-
+            .unwrap();
         Self { client, config }
     }
 
-    /// 下载文件
-    pub async fn download<P: AsRef<Path>>(
-        &self,
-        url: &str,
-        output_path: P,
-        progress_bar: Option<indicatif::ProgressBar>,
-    ) -> DownloadResult<()> {
+    /// Downloads a file (simplified version, without using `indicatif`)
+    pub async fn download(&self, url: &str, output_path: impl AsRef<Path>) -> DownloadResult<()> {
         let output_path = output_path.as_ref();
-        debug!("Starting download: {} -> {}", url, output_path.display());
 
-        // 获取文件信息
-        let (file_size, supports_range) = self.get_file_info(url).await?;
+        // Get file information
+        let total_size = self.get_file_size(url).await?;
 
-        // 根据文件大小和服务器支持情况选择下载方式
-        if file_size > self.config.min_chunk_size
-            && supports_range
-            && self.config.enable_chunked_download
-        {
-            debug!("Using chunked download for file size: {}", file_size);
-            // For now, fall back to single-threaded download
-            self.download_single(url, output_path, progress_bar).await
+        // Choose download method based on file size and server support
+        if self.config.enable_chunked_download && total_size > self.config.min_chunk_size {
+            self.download_chunked(url, output_path, total_size, None).await
         } else {
-            debug!("Using single-threaded download for file size: {}", file_size);
-            self.download_single(url, output_path, progress_bar).await
+            self.download_single_threaded(url, output_path, None).await
         }
     }
 
-    /// 获取文件信息
-    async fn get_file_info(&self, url: &str) -> DownloadResult<(u64, bool)> {
-        let response = self.client.head(url).send().await?;
-
-        let content_length = response
-            .headers()
-            .get("content-length")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|s| s.parse::<u64>().ok())
-            .ok_or(DownloadError::FileSizeUnavailable)?;
-
-        let supports_range = response
-            .headers()
-            .get("accept-ranges")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s == "bytes")
-            .unwrap_or(false);
-
-        Ok((content_length, supports_range))
-    }
-
-    /// 单线程下载
-    async fn download_single<P: AsRef<Path>>(
+    /// Downloads a file and displays simple progress
+    pub async fn download_with_simple_progress(
         &self,
         url: &str,
-        output_path: P,
-        progress_bar: Option<indicatif::ProgressBar>,
+        output_path: impl AsRef<Path>,
+        filename: &str,
     ) -> DownloadResult<()> {
         let output_path = output_path.as_ref();
+        // Get file information
+        let total_size = self.get_file_size(url).await?;
 
-        // 确保输出目录存在
+        // Create progress bar display
+        let progress = BasicProgress::new(format!("Downloading {filename}"));
+        let progress_clone = progress.clone();
+
+        // Ensure the output directory exists
         if let Some(parent) = output_path.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
 
-        let mut response = self.client.get(url).send().await?;
-        let mut file = File::create(output_path).await?;
-
-        let mut downloaded = 0u64;
-        let _buffer = vec![0u8; 8192];
-
-        while let Some(chunk) = response.chunk().await? {
-            file.write_all(&chunk).await?;
-            downloaded += chunk.len() as u64;
-
-            if let Some(ref progress) = progress_bar {
-                progress.set_position(downloaded);
-                // Update message with percentage and formatted sizes
-                let total = progress.length().unwrap_or(0);
-                if total > 0 {
-                    let current_formatted = format_file_size(downloaded);
-                    let total_formatted = format_file_size(total);
-                    let percent = (downloaded * 100) / total;
-                    progress.set_message(format!(
-                        "{}% ({}/{})",
-                        percent, current_formatted, total_formatted
-                    ));
-                }
+        let callback: ProgressCallback = Box::new(move |downloaded, total| {
+            if total > 0 {
+                progress_clone.show_download(downloaded, total);
             }
+        });
+
+        if self.config.enable_chunked_download && total_size > self.config.min_chunk_size {
+            self.download_chunked(url, output_path, total_size, Some(callback)).await?;
+        } else {
+            self.download_single_threaded(url, output_path, Some(callback)).await?;
         }
 
-        if let Some(ref progress) = progress_bar {
-            progress.finish_with_message("Download completed");
-        }
+        // Display final message upon completion
+        progress.done(&format!("Downloaded {filename}"));
 
-        info!("Download completed: {} bytes", downloaded);
         Ok(())
     }
 
-    /// 获取文件大小
-    pub async fn get_file_size(&self, url: &str) -> DownloadResult<u64> {
-        let (size, _) = self.get_file_info(url).await?;
-        Ok(size)
+    /// Gets the file size
+    async fn get_file_size(&self, url: &str) -> DownloadResult<u64> {
+        let response = self.client.head(url).send().await?;
+        response
+            .headers()
+            .get(reqwest::header::CONTENT_LENGTH)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.parse().ok())
+            .ok_or(DownloadError::FileSize)
+    }
+
+    /// Single-threaded download
+    async fn download_single_threaded(
+        &self,
+        url: &str,
+        output_path: impl AsRef<Path>,
+        progress_callback: Option<ProgressCallback>,
+    ) -> DownloadResult<()> {
+        let output_path = output_path.as_ref();
+
+        // Ensure the output directory exists
+        if let Some(parent) = output_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        let response = self.client.get(url).send().await?;
+        let file_size = response.content_length().unwrap_or(0);
+        let mut file = File::create(output_path).await?;
+        let mut downloaded: u64 = 0;
+        let mut stream = response.bytes_stream();
+        let last_update = Instant::now();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+            downloaded += chunk.len() as u64;
+
+            // Limit update frequency: update every 100ms or on completion
+            let now = Instant::now();
+            if now.duration_since(last_update).as_millis() >= 100 || downloaded == file_size {
+                if let Some(ref callback) = progress_callback {
+                    callback(downloaded, file_size);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Concurrent chunked download
+    async fn download_chunked(
+        &self,
+        url: &str,
+        output_path: impl AsRef<Path>,
+        total_size: u64,
+        _progress_callback: Option<ProgressCallback>,
+    ) -> DownloadResult<()> {
+        let output_path = output_path.as_ref();
+
+        // Ensure the output directory exists
+        if let Some(parent) = output_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        // Calculate number and size of chunks
+        let chunk_size = self.config.min_chunk_size;
+        let num_chunks = ((total_size + chunk_size - 1) / chunk_size)
+            .min(self.config.concurrent_connections as u64) as usize;
+        let actual_chunk_size = total_size / num_chunks as u64;
+
+        debug!("Downloading {total_size} bytes in {num_chunks} chunks of ~{actual_chunk_size} bytes each");
+
+        // Create chunk information
+        let chunks: Vec<ChunkInfo> = (0..num_chunks)
+            .map(|i| {
+                let start = i as u64 * actual_chunk_size;
+                let end = if i == num_chunks - 1 {
+                    total_size - 1
+                } else {
+                    start + actual_chunk_size - 1
+                };
+                ChunkInfo::new(i, start, end)
+            })
+            .collect();
+
+        // Create the output file
+        {
+            let file = File::create(output_path).await?;
+            file.set_len(total_size).await?;
+        }
+
+        // Use a semaphore to limit concurrency
+        let semaphore = Arc::new(Semaphore::new(self.config.concurrent_connections));
+        let downloaded_bytes = Arc::new(std::sync::atomic::AtomicU64::new(0));
+
+        // Simplified version: no progress callback for now to avoid lifetime issues
+        // TODO: Implement a better progress callback mechanism in a future version
+
+        // Concurrently download all chunks
+        let download_tasks: Vec<_> = chunks
+            .into_iter()
+            .map(|chunk| {
+                let client = self.client.clone();
+                let url = url.to_string();
+                let output_path = output_path.to_path_buf();
+                let semaphore = semaphore.clone();
+                let downloaded_bytes = downloaded_bytes.clone();
+
+                let max_retries = self.config.max_retries;
+                let retry_delay = Duration::from_millis(self.config.retry_delay_ms);
+
+                tokio::spawn(async move {
+                    let _permit = semaphore.acquire().await.unwrap();
+
+                    for attempt in 1..=max_retries {
+                        match Self::download_chunk(
+                            &client,
+                            &url,
+                            &output_path,
+                            &chunk,
+                            &downloaded_bytes,
+                            total_size,
+                        )
+                        .await
+                        {
+                            Ok(()) => return Ok(()),
+                            Err(e) => {
+                                warn!(
+                                    "Chunk {} download attempt {}/{} failed: {}",
+                                    chunk.index, attempt, max_retries, e
+                                );
+                                if attempt < max_retries {
+                                    tokio::time::sleep(retry_delay).await;
+                                } else {
+                                    return Err(e);
+                                }
+                            }
+                        }
+                    }
+
+                    Err(DownloadError::ChunkDownloadFailed(format!(
+                        "Chunk {} failed after {} attempts",
+                        chunk.index, max_retries
+                    )))
+                })
+            })
+            .collect();
+
+        // Wait for all download tasks to complete
+        let results: Result<Vec<_>, _> = try_join_all(download_tasks)
+            .await
+            .map_err(|e| DownloadError::Other(format!("Task join error: {e}")))?
+            .into_iter()
+            .collect();
+
+        results?;
+
+        info!("Chunked download completed: {total_size} bytes in {num_chunks} chunks");
+        Ok(())
+    }
+
+    /// Downloads a single chunk
+    async fn download_chunk(
+        client: &Client,
+        url: &str,
+        output_path: &Path,
+        chunk: &ChunkInfo,
+        downloaded_bytes: &Arc<std::sync::atomic::AtomicU64>,
+        total_size: u64,
+    ) -> DownloadResult<()> {
+        let _total_size = total_size;
+        // Create a range request
+        let range_header = format!("bytes={}-{}", chunk.start, chunk.end);
+        let response = client.get(url).header("Range", range_header).send().await?;
+
+        if !response.status().is_success() {
+            return Err(DownloadError::ChunkDownloadFailed(format!(
+                "HTTP {}: {}",
+                response.status(),
+                response.status().canonical_reason().unwrap_or("Unknown")
+            )));
+        }
+
+        // Open the file and seek to the chunk's position
+        let mut file = OpenOptions::new().write(true).open(output_path).await?;
+
+        file.seek(SeekFrom::Start(chunk.start)).await?;
+
+        // Download the chunk data
+        let mut chunk_downloaded = 0u64;
+        let mut stream = response.bytes_stream();
+
+        while let Some(bytes_result) = StreamExt::next(&mut stream).await {
+            let bytes = bytes_result.map_err(DownloadError::Network)?;
+            file.write_all(&bytes).await?;
+
+            chunk_downloaded += bytes.len() as u64;
+            // Update the global downloaded byte count
+            downloaded_bytes.fetch_add(bytes.len() as u64, std::sync::atomic::Ordering::Relaxed);
+        }
+
+        if chunk_downloaded != chunk.size {
+            Err(DownloadError::ChunkDownloadFailed(format!(
+                "Chunk {} downloaded {} bytes, expected {}",
+                chunk.index, chunk_downloaded, chunk.size
+            )))
+        } else {
+            Ok(())
+        }
     }
 }
 
 /// Helper function to format file sizes in human-readable format
-fn format_file_size(bytes: u64) -> String {
+pub fn format_file_size(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
     let mut value = bytes as f64;
     let mut unit_index = 0;
@@ -302,5 +409,63 @@ fn format_file_size(bytes: u64) -> String {
 impl Default for Downloader {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chunk_info_creation() {
+        let chunk = ChunkInfo::new(0, 0, 1023);
+        assert_eq!(chunk.index, 0);
+        assert_eq!(chunk.start, 0);
+        assert_eq!(chunk.end, 1023);
+        assert_eq!(chunk.size, 1024);
+    }
+
+    #[test]
+    fn test_downloader_creation() {
+        let downloader = Downloader::new();
+        assert!(downloader.config.enable_chunked_download);
+        assert_eq!(downloader.config.concurrent_connections, 4);
+        assert_eq!(downloader.config.min_chunk_size, 1024 * 1024);
+    }
+
+    #[test]
+    fn test_custom_config() {
+        let config = DownloadConfig {
+            concurrent_connections: 8,
+            min_chunk_size: 512 * 1024,
+            enable_chunked_download: false,
+            ..Default::default()
+        };
+
+        let downloader = Downloader::with_config(config.clone());
+        assert_eq!(downloader.config.concurrent_connections, 8);
+        assert_eq!(downloader.config.min_chunk_size, 512 * 1024);
+        assert!(!downloader.config.enable_chunked_download);
+    }
+
+    #[test]
+    fn test_format_file_size() {
+        assert_eq!(format_file_size(0), "0 B");
+        assert_eq!(format_file_size(512), "512 B");
+        assert_eq!(format_file_size(1024), "1.0 KB");
+        assert_eq!(format_file_size(1536), "1.5 KB");
+        assert_eq!(format_file_size(1024 * 1024), "1.0 MB");
+        assert_eq!(format_file_size(1024 * 1024 * 1024), "1.0 GB");
+    }
+
+    #[tokio::test]
+    async fn test_download_config_validation() {
+        let config = DownloadConfig::default();
+        assert!(config.timeout > Duration::from_secs(0));
+        assert!(config.connect_timeout > Duration::from_secs(0));
+        assert!(config.concurrent_connections > 0);
+        assert!(config.min_chunk_size > 0);
+        assert!(config.max_retries > 0);
+        assert!(config.retry_delay_ms > 0);
     }
 }
