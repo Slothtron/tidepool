@@ -1,0 +1,149 @@
+# Git Conventional Commit Messages
+
+This rule provides guidelines for writing consistent and meaningful commit messages using the Conventional Commits specification.
+
+## Format Structure
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+## Commit Types
+
+### Primary Types
+- **feat**: A new feature for the user (correlates with MINOR in Semantic Versioning)
+- **fix**: A bug fix for the user (correlates with PATCH in Semantic Versioning)
+
+### Additional Types
+- **build**: Changes that affect the build system or external dependencies
+- **chore**: Routine tasks, maintenance, or housekeeping changes
+- **ci**: Changes to CI configuration files and scripts
+- **docs**: Documentation only changes
+- **style**: Changes that do not affect the meaning of the code (formatting, missing semi-colons, etc.)
+- **refactor**: A code change that neither fixes a bug nor adds a feature
+- **perf**: A code change that improves performance
+- **test**: Adding missing tests or correcting existing tests
+- **revert**: Reverts a previous commit
+
+## Breaking Changes
+
+- **BREAKING CHANGE**: Introduces a breaking API change (correlates with MAJOR in Semantic Versioning)
+- Can be indicated by:
+  - Adding `!` after the type/scope: `feat!: remove deprecated API`
+  - Adding `BREAKING CHANGE:` in the footer
+
+## Scope Guidelines
+
+Scope provides additional contextual information about the section of codebase affected:
+- Use parentheses: `feat(parser): add array parsing`
+- Common scopes for this project:
+  - `cli`: Command line interface changes
+  - `config`: Configuration related changes
+  - `install`: Installation functionality
+  - `list`: Version listing functionality
+  - `switch`: Version switching functionality
+  - `ui`: User interface changes
+  - `deps`: Dependency updates
+
+## Description Guidelines
+
+- Use imperative mood: "add feature" not "added feature"
+- Start with lowercase letter
+- No period at the end
+- Keep under 50 characters when possible
+- Be concise but descriptive
+
+## Body Guidelines
+
+- Separate from description with a blank line
+- Explain the "what" and "why", not the "how"
+- Use imperative mood
+- Wrap at 72 characters
+- Can contain multiple paragraphs
+
+## Footer Guidelines
+
+- Separate from body with a blank line
+- Format: `token: value` or `token #value`
+- Common footers:
+  - `BREAKING CHANGE: description`
+  - `Closes #123`
+  - `Fixes #456`
+  - `Refs #789`
+  - `Co-authored-by: Name <email>`
+
+## Examples
+
+### Simple Feature
+```
+feat: add version comparison functionality
+```
+
+### Bug Fix with Scope
+```
+fix(list): show current active version status
+
+The gvm list command was not displaying which version
+is currently active. Added is_current field to version
+info and updated UI to show active status.
+
+Fixes #42
+```
+
+### Breaking Change
+```
+feat!: merge VersionInfo and GoVersionInfo structs
+
+BREAKING CHANGE: VersionInfo struct has been removed.
+All code should now use GoVersionInfo which provides
+more comprehensive version information.
+```
+
+### Chore with Multiple Changes
+```
+chore: bump version to 0.2.1
+
+- Fix gvm list command not showing current active version
+- Merge VersionInfo and GoVersionInfo structs
+- Fix hardcoded values in list_available_versions
+- Improve code consistency and maintainability
+- Add cursor rules for nushell commands and ripgrep
+```
+
+### Documentation Update
+```
+docs(readme): update installation instructions
+
+Add instructions for installing from source and
+update examples to reflect new CLI options.
+```
+
+## Best Practices
+
+1. **Be Consistent**: Use the same types and scopes across your project
+2. **Be Specific**: Avoid vague descriptions like "fix stuff" or "update code"
+3. **Use Present Tense**: Write as if the commit is being applied now
+4. **Reference Issues**: Link to relevant issues or pull requests
+5. **Group Related Changes**: Keep logically related changes in the same commit
+6. **Atomic Commits**: Each commit should represent a single logical change
+
+## Tools Integration
+
+This format works well with:
+- Semantic versioning automation
+- Changelog generation tools
+- CI/CD pipelines
+- Code review processes
+- Git hooks for validation
+
+## Validation Rules
+
+- Type is required and must be lowercase
+- Description is required and should be concise
+- Scope is optional but should be consistent when used
+- Breaking changes must be clearly indicated
+- Footer format must follow git trailer conventions
