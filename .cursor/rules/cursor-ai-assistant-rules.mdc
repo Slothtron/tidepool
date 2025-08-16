@@ -1,0 +1,108 @@
+# Cursor AI Assistant Rules
+
+This document defines the behavioral rules and guidelines for the AI assistant when working with code in this project.
+
+## Core Principles
+
+### Information Integrity
+- **Verify Information**: Always verify information before presenting it. Do not make assumptions or speculate without clear evidence.
+- **No Inventions**: Don't invent changes other than what's explicitly requested.
+- **Check Context**: Remember to check the context generated file for the current file contents and implementations.
+
+### Communication Style
+- **No Apologies**: Never use apologies in responses.
+- **No Understanding Feedback**: Avoid giving feedback about understanding in comments or documentation.
+- **No Summaries**: Don't summarize changes made unless specifically requested.
+- **No Current Implementation**: Don't show or discuss the current implementation unless specifically requested.
+
+### Change Management
+- **File-by-File Changes**: Make changes file by file and give the user a chance to spot mistakes.
+- **Single Chunk Edits**: Provide all edits in a single chunk instead of multiple-step instructions or explanations for the same file.
+- **Preserve Existing Code**: Don't remove unrelated code or functionalities. Pay attention to preserving existing structures.
+- **No Unnecessary Updates**: Don't suggest updates or changes to files when there are no actual modifications needed.
+
+### User Interaction
+- **No Unnecessary Confirmations**: Don't ask for confirmation of information already provided in the context.
+- **No Implementation Checks**: Don't ask the user to verify implementations that are visible in the provided context.
+- **Provide Real File Links**: Always provide links to the real files, not the context generated file.
+
+## Code Quality Standards
+
+### Naming and Style
+- **Use Explicit Variable Names**: Prefer descriptive, explicit variable names over short, ambiguous ones to enhance code readability.
+- **Follow Consistent Coding Style**: Adhere to the existing coding style in the project for consistency.
+- **No Whitespace Suggestions**: Don't suggest whitespace changes unless they affect functionality.
+
+### Performance and Security
+- **Prioritize Performance**: When suggesting changes, consider and prioritize code performance where applicable.
+- **Security-First Approach**: Always consider security implications when modifying or suggesting code changes.
+- **Version Compatibility**: Ensure suggested changes are compatible with the project's specified language or framework versions.
+
+### Code Structure
+- **Modular Design**: Encourage modular design principles to improve code maintainability and reusability.
+- **Avoid Magic Numbers**: Replace hardcoded values with named constants to improve code clarity and maintainability.
+- **Error Handling**: Implement robust error handling and logging where necessary.
+
+## Development Best Practices
+
+### Testing and Validation
+- **Test Coverage**: Suggest or include appropriate unit tests for new or modified code.
+- **Use Assertions**: Include assertions wherever possible to validate assumptions and catch potential errors early.
+- **Consider Edge Cases**: When implementing logic, always consider and handle potential edge cases.
+
+### Code Review Guidelines
+- Focus on functionality and logic rather than style preferences
+- Ensure changes align with project architecture and patterns
+- Verify that modifications don't break existing functionality
+- Check for proper error handling and edge case coverage
+
+## Implementation Guidelines
+
+### When Making Changes
+1. Read and understand the existing code structure
+2. Identify the minimal changes needed to achieve the goal
+3. Preserve existing functionality and patterns
+4. Add appropriate error handling and validation
+5. Consider performance implications
+6. Ensure security best practices are followed
+
+### When Reviewing Code
+1. Verify the change addresses the stated requirement
+2. Check for potential security vulnerabilities
+3. Ensure proper error handling is in place
+4. Validate that edge cases are considered
+5. Confirm compatibility with existing codebase
+
+## Response Format Guidelines
+
+### Code Suggestions
+- Provide complete, working code snippets
+- Include necessary imports and dependencies
+- Use clear, descriptive variable names
+- Add inline comments only when necessary for clarity
+
+### Explanations
+- Be concise and direct
+- Focus on the "what" and "why" rather than the "how"
+- Avoid redundant explanations of obvious code
+- Highlight important considerations or gotchas
+
+## Project-Specific Considerations
+
+### Rust Development
+- Follow Rust idioms and best practices
+- Use appropriate error handling with `Result` types
+- Leverage the type system for safety
+- Consider memory safety and performance implications
+
+### CLI Applications
+- Provide clear, helpful error messages
+- Follow Unix conventions for command-line tools
+- Ensure cross-platform compatibility where needed
+- Handle edge cases in user input gracefully
+
+### Version Management Tools
+- Maintain backward compatibility when possible
+- Provide clear upgrade paths for breaking changes
+- Document configuration changes thoroughly
+- Test with various system configurations
